@@ -19,15 +19,16 @@ pub struct BpmThresholds {
     pub max_bpm: u32,
 }
 
-/// Weights for different quality factors (0.0 to 1.0)
+/// Preferences for different playlist characteristics (0.0 to 1.0)
+/// Each value represents how much you want that characteristic:
+/// 0.0 = minimize this characteristic, 1.0 = maximize this characteristic
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityWeights {
-    pub artist_diversity: f32,
-    pub bpm_transition_smoothness: f32,
-    pub genre_coherence: f32,
-    pub popularity_balance: f32,
-    pub duration_consistency: f32,
-    pub era_cohesion: f32,
+    pub artist_diversity: f32,           // 0.0 = prefer same artists, 1.0 = prefer different artists
+    pub bpm_transition_smoothness: f32,  // 0.0 = allow big BPM jumps, 1.0 = prefer smooth transitions
+    pub genre_coherence: f32,            // 0.0 = prefer genre variety, 1.0 = prefer genre consistency
+    pub popularity_balance: f32,         // 0.0 = allow extreme popularity differences, 1.0 = prefer balanced mix
+    pub era_cohesion: f32,              // 0.0 = prefer era variety, 1.0 = prefer same time period
 }
 
 /// Rules for transitions between songs
@@ -61,12 +62,11 @@ impl Default for PlaylistConfig {
             acceptable_genres: None,
             bpm_thresholds: None,
             quality_weights: QualityWeights {
-                artist_diversity: 0.25,
-                bpm_transition_smoothness: 0.20,
-                genre_coherence: 0.15,
-                popularity_balance: 0.15,
-                duration_consistency: 0.10,
-                era_cohesion: 0.15,
+                artist_diversity: 0.30,
+                bpm_transition_smoothness: 0.25,
+                genre_coherence: 0.20,
+                popularity_balance: 0.25,
+                era_cohesion: 0.20,
             },
             transition_rules: TransitionRules {
                 max_bpm_jump: 20,

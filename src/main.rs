@@ -1,6 +1,6 @@
 
 use anyhow::Result;
-use std::env;
+use clap::Parser;
 
 mod config;
 mod client;
@@ -15,24 +15,33 @@ use crate::client::SubsonicClient;
 use crate::models::Song;
 use crate::playlist::{PlaylistGenerator, PlaylistConfig};
 
+#[derive(Parser)]
+#[command(name = "playlist-generator")]
+#[command(about = "Playlist Generator for OpenSubsonic servers")]
+#[command(version)]
+struct Args {
+    /// Path to the playlist configuration JSON file
+    #[arg(short = 'c', long = "config", default_value = "playlists.json")]
+    config_file: String,
+    
+    /// Enable debug mode - print playlist details to stdout instead of uploading
+    #[arg(short = 'd', long = "debug")]
+    debug: bool,
+    
+    /// Quiet mode - reduce output verbosity
+    #[arg(short = 'q', long = "quiet")]
+    quiet: bool,
+}
+
 fn main() -> Result<()> {
-    // Check for debug flag
-    let args: Vec<String> = env::args().collect();
+    let args = Args::parse();
     
-    // Handle help request
-    if args.contains(&"--help".to_string()) || args.contains(&"-h".to_string()) {
-        println!("Playlist Generator for OpenSubsonic servers");
-        println!();
-        println!("USAGE:");
-        println!("    playlist-generator [OPTIONS]");
-        println!();
-        println!("OPTIONS:");
-        println!("    -d, --debug    Enable debug mode - print playlist details to stdout instead of uploading");
-        println!("    -h, --help     Print this help message");
-        return Ok(());
+    // Validate that the playlist configuration file exists before proceeding
+    if !std::path::Path::new(&args.config_file).exists() {
+        eprintln!("Error: Playlist configuration file '{}' not found.", args.config_file);
+        eprintln!("Please ensure the file exists or specify a different file with --config.");
+        return Err(anyhow::anyhow!("Configuration file '{}' not found", args.config_file));
     }
-    
-    let debug_mode = args.contains(&"--debug".to_string()) || args.contains(&"-d".to_string());
     
     // Load configuration from .env
     let config = load_config()?;
@@ -52,7 +61,7 @@ fn main() -> Result<()> {
 
     // Fetch random songs from the API
     println!("\nFetching songs for playlist generation...");
-    let songs = client.fetch_diverse_songs(200)?; // Fetch 200 songs for much better diversity
+    let songs = client.fetch_songs(Some(500))?; // Fetch 500 random songs for better variety
     
     println!("Fetched {} songs total.", songs.len());
     
@@ -78,8 +87,8 @@ fn main() -> Result<()> {
     }
 
     // Load playlist configurations from JSON file
-    println!("\nLoading playlist configurations...");
-    let playlist_configs = match PlaylistConfig::load_all_from_file("playlists.json") {
+    println!("\nLoading playlist configurations from: {}", args.config_file);
+    let playlist_configs = match PlaylistConfig::load_all_from_file(&args.config_file) {
         Ok(configs) => {
             println!("Loaded {} playlist configurations", configs.len());
             configs
@@ -90,13 +99,10 @@ fn main() -> Result<()> {
         }
     };
     
-    // Create a default generator for filtering non-songs
-    let default_generator = PlaylistGenerator::with_default_config();
-    
     // First, filter out non-songs and show statistics
     let original_count = songs.len();
     let actual_songs: Vec<Song> = songs.into_iter()
-        .filter(|song| default_generator.is_actual_song(song))
+        .filter(|song| crate::playlist::filters::SongFilters::is_actual_song(song))
         .collect();
     
     let filtered_out_count = original_count - actual_songs.len();
@@ -185,7 +191,7 @@ fn main() -> Result<()> {
             &playlist.name // For other playlists, use the full name
         };
         
-        if debug_mode {
+        if args.debug {
             // Debug mode: print playlist details instead of uploading
             println!("\n🔍 DEBUG MODE: Playlist '{}' (would create via API)", playlist.name);
             println!("   Would clean up existing playlists matching pattern: '{}'", base_name_pattern);
@@ -256,28 +262,6 @@ fn main() -> Result<()> {
                     creation_results.push((playlist.name.clone(), false, format!("Error: {}", e)));
                 }
             }
-        }
-        
-        // Display first few songs for verification
-        println!("\nFirst 5 songs in playlist:");
-        for (i, song) in playlist.songs.iter().take(5).enumerate() {
-            let all_genres = song.get_all_genres();
-            let genres_display = if all_genres.is_empty() { 
-                "Unknown".to_string() 
-            } else { 
-                all_genres.join(", ") 
-            };
-            println!("{}. {} by {} (Genres: {}, BPM: {})", 
-                i + 1,
-                song.title, 
-                song.artist,
-                genres_display,
-                song.bpm.unwrap_or(0)
-            );
-        }
-        
-        if playlist.songs.len() > 5 {
-            println!("   ... and {} more songs", playlist.songs.len() - 5);
         }
     }
 

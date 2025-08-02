@@ -20,16 +20,34 @@ Each playlist configuration is a JSON object with the following structure:
 - **`bpm_thresholds.max_bpm`** (number): Maximum BPM for songs considered "softer"
 - **`bpm_thresholds.min_bpm`** (number): Minimum BPM for songs considered "upbeat"
 
-### Quality Weights (0.0 to 1.0)
+### Playlist Preferences (0.0 to 1.0)
 
-These weights determine how much each factor contributes to playlist quality:
+These weights determine how much you want each characteristic in your playlist. Each value expresses your preference:
 
-- **`artist_diversity`**: How much to prioritize having different artists
-- **`bpm_transition_smoothness`**: How much to prioritize smooth BPM transitions
-- **`genre_coherence`**: How much to prioritize genre consistency
-- **`popularity_balance`**: How much to balance popular vs. obscure tracks
-- **`duration_consistency`**: How much to prioritize consistent song lengths
-- **`era_cohesion`**: How much to group songs from similar time periods
+- **`artist_diversity`**: How much you want different artists vs. repeating favorites
+  - 0.0 = Prefer repeating same artists (focus on favorites)
+  - 0.5 = Balanced mix of familiar and new artists
+  - 1.0 = Maximize different artists (explore your collection)
+
+- **`bpm_transition_smoothness`**: How smooth you want tempo changes between songs
+  - 0.0 = Allow dramatic tempo changes (energetic, surprising)
+  - 0.5 = Moderate tempo changes (some variety, some flow)
+  - 1.0 = Prioritize smooth tempo transitions (relaxing, cohesive flow)
+
+- **`genre_coherence`**: How consistent you want the genre selection
+  - 0.0 = Maximize genre variety (eclectic, discovery-focused)
+  - 0.5 = Balanced genre mixing (some variety within theme)
+  - 1.0 = Prioritize genre consistency (focused, coherent mood)
+
+- **`popularity_balance`**: How balanced you want popular vs. obscure tracks
+  - 0.0 = Allow extreme popularity differences (mix of hits and deep cuts)
+  - 0.5 = Moderate popularity variety OR no play count data
+  - 1.0 = Prefer balanced mix of moderately popular tracks
+
+- **`era_cohesion`**: How much you want songs from the same time period
+  - 0.0 = Maximize era variety (time-traveling playlist)
+  - 0.5 = Allow some era mixing (decades can blend)
+  - 1.0 = Prioritize same era (nostalgic, historically cohesive)
 
 ### Transition Rules
 
@@ -47,15 +65,18 @@ These weights determine how much each factor contributes to playlist quality:
 
 ## Example Configurations
 
-### Morning Chill Playlist
+### Morning Chill Playlist (Coherent & Smooth)
 ```json
 {
   "name": "Morning Chill",
   "target_length": 25,
   "acceptable_genres": ["Jazz", "Chillout", "Indie Folk", "Lo-Fi"],
-  "bpm_thresholds": {
-    "softer_max": 85,
-    "upbeat_min": 95
+  "quality_weights": {
+    "artist_diversity": 0.7,
+    "bpm_transition_smoothness": 0.9,
+    "genre_coherence": 0.8,
+    "popularity_balance": 0.6,
+    "era_cohesion": 0.4
   },
   "preference_weights": {
     "starred_boost": 40.0,
@@ -64,29 +85,19 @@ These weights determine how much each factor contributes to playlist quality:
 }
 ```
 
-### High Energy Workout
-```json
-{
-  "name": "Workout",
-  "target_length": 40,
-  "acceptable_genres": ["Electronic", "Rock", "Metal", "Hip Hop"],
-  "bpm_thresholds": {
-    "softer_max": 120,
-    "upbeat_min": 140
-  },
-  "preference_weights": {
-    "starred_boost": 80.0,
-    "discovery_mode": false
-  }
-}
-```
-
-### Discovery Mode
+### Discovery Playlist (Diverse & Exploratory)
 ```json
 {
   "name": "Discovery",
   "target_length": 20,
   "acceptable_genres": ["Experimental", "Indie", "Alternative", "World Music"],
+  "quality_weights": {
+    "artist_diversity": 0.9,
+    "bpm_transition_smoothness": 0.2,
+    "genre_coherence": 0.1,
+    "popularity_balance": 0.3,
+    "era_cohesion": 0.2
+  },
   "preference_weights": {
     "starred_boost": 10.0,
     "play_count_weight": 5.0,
@@ -95,13 +106,52 @@ These weights determine how much each factor contributes to playlist quality:
 }
 ```
 
+### High Energy Workout (Energetic & Dynamic)
+```json
+{
+  "name": "Workout",
+  "target_length": 40,
+  "acceptable_genres": ["Electronic", "Rock", "Metal", "Hip Hop"],
+  "quality_weights": {
+    "artist_diversity": 0.6,
+    "bpm_transition_smoothness": 0.3,
+    "genre_coherence": 0.7,
+    "popularity_balance": 0.8,
+    "era_cohesion": 0.1
+  },
+  "preference_weights": {
+    "starred_boost": 80.0,
+    "discovery_mode": false
+  }
+}
+```
+
+### Nostalgic 90s Mix (Era-Focused)
+```json
+{
+  "name": "90s Throwback",
+  "target_length": 30,
+  "acceptable_genres": ["Alternative Rock", "Grunge", "Hip Hop", "R&B"],
+  "quality_weights": {
+    "artist_diversity": 0.5,
+    "bpm_transition_smoothness": 0.6,
+    "genre_coherence": 0.6,
+    "popularity_balance": 0.7,
+    "era_cohesion": 0.9
+  }
+}
+```
+
 ## Tips for Configuration
 
 1. **Genre Selection**: Start broad and narrow down if playlists become too eclectic
-2. **BPM Thresholds**: Adjust based on your music collection's BPM distribution
-3. **Discovery Mode**: Use sparingly - great for finding new music but can feel random
-4. **Quality Weights**: Higher values = more emphasis on that factor
-5. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
+2. **Preference Weights**: Think about what you want, not what's "good" or "bad"
+   - Discovery playlist: Low genre_coherence (0.1-0.3) for variety
+   - Workout playlist: Low bpm_transition_smoothness (0.2-0.4) for energy changes
+   - Study playlist: High genre_coherence (0.8-1.0) and bpm_transition_smoothness (0.8-1.0)
+3. **Discovery Mode**: Great for finding new music but can feel random
+4. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
+5. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferences
 
 ## Testing Your Configuration
 

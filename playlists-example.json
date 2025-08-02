@@ -16,7 +16,6 @@
       "bpm_transition_smoothness": 0.4,
       "genre_coherence": 0.6,
       "popularity_balance": 0.2,
-      "duration_consistency": 0.3,
       "era_cohesion": 0.1
     },
     "transition_rules": {
@@ -49,7 +48,6 @@
       "bpm_transition_smoothness": 0.6,
       "genre_coherence": 0.4,
       "popularity_balance": 0.5,
-      "duration_consistency": 0.4,
       "era_cohesion": 0.1
     },
     "transition_rules": {
@@ -82,7 +80,6 @@
       "bpm_transition_smoothness": 0.2,
       "genre_coherence": 0.3,
       "popularity_balance": 0.6,
-      "duration_consistency": 0.1,
       "era_cohesion": 0.5
     },
     "transition_rules": {
@@ -114,7 +111,6 @@
       "bpm_transition_smoothness": 0.7,
       "genre_coherence": 0.8,
       "popularity_balance": 0.1,
-      "duration_consistency": 0.6,
       "era_cohesion": 0.2
     },
     "transition_rules": {

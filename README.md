@@ -1,221 +1,304 @@
 # Playlist Generator
 
-This is a Rust project that uses the opensubsonic API to generate playlists using heuristics and metadata.
+A Rust application that generates playlists for OpenSubsonic servers using available music metadata. Creates playlists based on genre, BPM, and user listening data, with basic heuristics for song ordering and artist diversity.
 
 ## Features
-- Connects to opensubsonic API
-- Generates playlists based on heuristics and metadata
-- **Automatically creates/updates playlists via API**
-- **Filters out non-songs (interludes, sketches, etc.)**
-- **Suitable for cron job automation**
-- **Idempotent operations (safe to run repeatedly)**
-- **Comprehensive logging for monitoring**
 
-## Getting Started
-1. Install Rust and Cargo
-2. Copy the environment configuration: `cp .env.example .env`
-3. Edit `.env` file with your opensubsonic server details
-4. Build the project: `cargo build`
-5. Run the project: `cargo run`
+- **Playlist Generation**: Creates playlists based on genre, BPM, and user preferences
+- **OpenSubsonic API Integration**: Works with OpenSubsonic-compatible servers (Navidrome, Airsonic, etc.)
+- **Content Filtering**: Excludes tracks that appear to be interludes, sketches, or non-musical content
+- **Basic Quality Heuristics**: Avoids consecutive songs by the same artist and manages BPM transitions
+- **Automation Support**: Suitable for cron job automation with logging
+- **JSON Configuration**: Configurable playlists with genre filters and preferences
+- **Playlist Management**: Replaces existing playlists to prevent accumulation
 
-## Cron Job Setup
+## Installation
 
-This application is designed to run as a daily cron job to automatically generate fresh playlists. Here's how to set it up:
+### Prerequisites
+- Rust 1.70+ and Cargo
+- Access to an OpenSubsonic-compatible music server (Navidrome, Airsonic, etc.)
 
-### 1. Build Release Version
+### Setup
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd playlist-generator-rust
+   ```
+
+2. **Configure environment variables**
+   ```bash
+   cp .env.example .env
+   ```
+   Edit `.env` with your server details:
+   ```env
+   BASE_URL=https://your-music-server.com
+   USERNAME=your-username
+   PASSWORD=your-password
+   ```
+
+3. **Build the application**
+   ```bash
+   cargo build --release
+   ```
+
+## Usage
+
+### Basic Usage
+
+**Generate playlists:**
 ```bash
-cargo build --release
+cargo run
 ```
 
-### 2. Set Up Cron Job
-The easiest way is to use the provided script:
-
+**Debug mode (preview without creating playlists):**
 ```bash
-# Make the script executable
-chmod +x generate-playlists.sh
-
-# Add to crontab (run daily at 6:00 AM)
-0 6 * * * /path/to/playlist-generator-rust/generate-playlists.sh
+cargo run -- --debug
 ```
 
-Or run the binary directly:
+**Custom configuration file:**
 ```bash
-# Run daily at 6:00 AM to generate fresh playlists
-0 6 * * * cd /path/to/playlist-generator-rust && ./target/release/playlist-generator >> /var/log/playlist-generator.log 2>&1
+cargo run -- --config my-playlists.json
 ```
 
-### 3. Monitor Logs
-The application provides detailed logging suitable for monitoring cron job execution:
-- ✓ Success indicators for each step
-- ✗ Error messages with details
-- Summary of playlist creation results
-- Suitable exit codes for monitoring systems
+**Quiet mode (reduced output):**
+```bash
+cargo run -- --quiet
+```
 
-### 4. Environment Variables
-Ensure your `.env` file is properly configured with:
-- `BASE_URL`: Your opensubsonic server URL
-- `USERNAME`: Your API username  
-- `PASSWORD`: Your API password
+### Command Line Options
 
-The application will automatically:
-- Delete existing playlists with the same names
-- Create fresh "Softer Genres Playlist" and "Upbeat Genres Playlist"
-- Log all operations for monitoring
-- Return appropriate exit codes for automation
+- `-c, --config <FILE>`: Specify playlist configuration file (default: `playlists.json`)
+- `-d, --debug`: Debug mode - show playlist details without uploading to server
+- `-q, --quiet`: Reduce output verbosity
+- `-h, --help`: Show help information
+- `-V, --version`: Show version information
+
+## Configuration
+
+### Playlist Configuration
+
+The application uses a JSON configuration file to define playlists. The configuration format is documented in [`PLAYLIST_CONFIG.md`](PLAYLIST_CONFIG.md), with complete examples available in [`playlists-example.json`](playlists-example.json).
+
+**Basic structure:**
+```json
+[
+  {
+    "name": "Morning Chill",
+    "target_length": 25,
+    "acceptable_genres": ["Jazz", "Chillout", "Indie Folk"],
+    "bpm_thresholds": {
+      "min_bpm": 60,
+      "max_bpm": 95
+    },
+    "preference_weights": {
+      "starred_boost": 40.0,
+      "discovery_mode": false
+    }
+  }
+]
+```
+
+**Key configuration options:**
+- `name`: Playlist name (dominant genres may be appended automatically)
+- `target_length`: Target number of songs
+- `acceptable_genres`: List of genres to include
+- `bpm_thresholds`: BPM range filters
+- `preference_weights`: Boost starred tracks, enable discovery mode
+- `quality_weights`: Control artist diversity, BPM transitions, etc.
+
+See [`PLAYLIST_CONFIG.md`](PLAYLIST_CONFIG.md) for detailed configuration documentation.
+
+### Environment Variables
+
+Configure your OpenSubsonic server connection in `.env`:
+
+```env
+BASE_URL=https://your-music-server.com
+USERNAME=your-username
+PASSWORD=your-password
+```
+
+**Required variables:**
+- `BASE_URL`: Your OpenSubsonic server URL
+- `USERNAME`: API username
+- `PASSWORD`: API password
+
+## Automation & Deployment
+
+### Cron Job Setup
+
+For automated daily playlist generation:
+
+1. **Build release version:**
+   ```bash
+   cargo build --release
+   ```
+
+2. **Set up cron job:**
+   ```bash
+   # Run daily at 6:00 AM
+   0 6 * * * cd /path/to/playlist-generator-rust && ./target/release/playlist-generator >> /var/log/playlist-generator.log 2>&1
+   ```
+
+3. **Using the provided script:**
+   ```bash
+   chmod +x generate-playlists.sh
+   0 6 * * * /path/to/playlist-generator-rust/generate-playlists.sh
+   ```
+
+### Monitoring
+
+The application provides logging for monitoring automated runs:
+- Success/failure indicators for each operation
+- Error messages with details
+- Playlist generation statistics
+- Creation summaries
+
+Exit codes:
+- `0`: Success - all playlists created
+- `1`: Failure - configuration or API errors
+
+## How It Works
+
+### Playlist Generation Process
+
+The application generates playlists using the metadata available from OpenSubsonic APIs:
+
+**Content Filtering:**
+- Filters out tracks that appear to be interludes, sketches, or ambient non-songs
+- Uses title patterns and duration to identify non-musical content
+- Focuses on tracks that seem to be actual songs
+
+**Basic Heuristics:**
+- **Artist Variety**: Avoids consecutive songs by the same artist
+- **BPM Transitions**: Manages tempo changes between songs (configurable jump limits)
+- **Genre Grouping**: Keeps similar genres together while allowing some variety
+- **User Preferences**: Gives weight to starred tracks and play counts
+- **Temporal Distribution**: Balances songs across different years when possible
+
+**Playlist Management:**
+- Removes existing playlists matching base name patterns before creating new ones
+- Handles dynamic playlist names that include dominant genres
+- Prevents accumulation of old playlists
+
+### Available Metadata & Limitations
+
+The generator works with standard OpenSubsonic metadata:
+- **Basic Info**: Title, artist, album, genre, year, duration
+- **Audio Data**: BPM (when available), bit rate
+- **User Data**: Play count, starred status, last played timestamp
+
+**Important Limitations:**
+- **No Audio Analysis**: No data on energy, mood, key signature, or acoustic features
+- **Genre Dependency**: Relies entirely on existing genre tags in your music library
+- **BPM Availability**: BPM-based features only work if your music has BPM metadata
+- **Simple Heuristics**: Uses basic rules rather than machine learning or advanced analysis
+- **No Collaborative Filtering**: Doesn't learn from listening patterns or similar users
 
 ## Project Structure
-- `src/`: Rust source code
-- `generate-playlists.sh`: Cron job script for automated execution
-- `.github/copilot-instructions.md`: Copilot custom instructions
-- `.vscode/tasks.json`: VS Code tasks
+
+```
+├── src/
+│   ├── main.rs           # Main application entry point
+│   ├── config.rs         # Configuration loading
+│   ├── client.rs         # OpenSubsonic API client
+│   ├── models.rs         # Data models
+│   └── playlist/         # Playlist generation logic
+│       ├── mod.rs
+│       ├── config.rs     # Playlist configuration
+│       ├── generator.rs  # Core generation algorithms
+│       └── metadata.rs   # Metadata analysis
+├── playlists.json        # Playlist configuration
+├── playlists-example.json # Example configuration
+└── generate-playlists.sh # Automation script
+```
+
+## Examples
+
+### Sample Output
+
+```
+Testing API connection...
+✓ API connection successful
+
+Fetching songs for playlist generation...
+Fetched 500 songs total.
+Filtered out 23 non-songs (interludes, sketches, etc.)
+Using 477 actual songs for playlist generation
+
+=== GENERATION RESULTS ===
+Generated 2 playlists
+
+Chill Vibes · Jazz
+==================
+Quality Score: 87.3/100
+
+📊 Playlist Details:
+   Songs: 42 | Duration: 156m23s | Avg BPM: 89.2
+   Unique Artists: 28 | BPM Range: 65-118
+   Era: 1995 - 2023
+   Top Genres: Jazz (18), Folk (12), Acoustic (8)
+
+✓ Successfully created playlist 'Chill Vibes · Jazz' with ID: 12345
+
+=== PLAYLIST CREATION SUMMARY ===
+Successfully created 2/2 playlists
+🎉 All playlists created successfully!
+```
+
+### Debug Mode Example
+
+```bash
+cargo run -- --debug
+```
+
+This shows detailed song information without uploading to your server, useful for testing configurations.
+
+## Troubleshooting
+
+### Common Issues
+
+**Connection failed:**
+- Verify your `.env` file has correct server URL and credentials
+- Check if your server supports OpenSubsonic API
+- Ensure server is accessible from your network
+
+**No songs found:**
+- Check your playlist configuration genre filters
+- Verify your music library has songs with the required metadata
+- Consider broadening BPM ranges or genre lists
+- Note that BPM-based filtering requires your music to have BPM metadata
+
+**Compilation errors:**
+- Ensure you have Rust 1.70+ installed
+- Run `cargo clean` and try building again
+
+**Permission errors:**
+- Ensure your user account has playlist creation permissions
+- Check server logs for authentication issues
+
+### Debug Tips
+
+1. Use `--debug` mode to preview playlists without uploading
+2. Use `--quiet` mode to reduce output for monitoring
+3. Check logs for detailed error information
+4. Test API connection before playlist generation
+5. Verify your music library has the metadata (genres, BPM) your configuration expects
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
 ## License
-MIT
 
-## Environment Variables
-- Create an `.env` file in the project root. You can copy from the provided `.env.example`:
-  ```sh
-  cp .env.example .env
-  ```
-- Define the following variables in `.env`:
-  - `BASE_URL`: The base URL for the opensubsonic API.
-  - `USERNAME`: The username for API authentication.
-  - `PASSWORD`: The password for API authentication.
+MIT License - see LICENSE file for details.
 
-## Tasks
+## Related Projects
 
-### Playlist Generation
-
-#### Task 1: Define, Set Up, and Document Environment Variables
-- Create an `.env` file to store configuration variables.
-- Define the following variables:
-  - `BASE_URL`: The base URL for the opensubsonic API.
-  - `USERNAME`: The username for API authentication.
-  - `PASSWORD`: The password for API authentication.
-- Update the documentation to include instructions for setting up the `.env` file.
-
-#### Task 2: Create a Client to Consume Environment Variables
-- Implement a function to read the `.env` file and load the configuration variables.
-- Use these variables to initialize an HTTP client for interacting with the opensubsonic API.
-
-#### Task 3: Fetch Songs from the API
-- Step 1: Define the API endpoint for fetching songs.
-- Step 2: Implement a function to send a GET request to the API endpoint.
-- Step 3: Parse the API response to extract song metadata, including:
-  - Title
-  - Artist
-  - Album
-  - Genre
-  - BPM
-- Step 4: Handle errors gracefully, such as network issues or invalid responses.
-
-#### Task 4: Categorize Songs by Genre and BPM
-- Step 1: Define a list of "softer" genres (e.g., "acoustic", "ambient", "classical").
-- Step 2: Define a list of "upbeat" genres (e.g., "pop", "rock", "dance").
-- Step 3: Implement a function to filter songs into these two categories based on their genre.
-- Step 4: Add additional filtering logic to exclude songs with missing or invalid BPM values.
-- Step 5: Sort each category by BPM in ascending order.
-
-#### Task 5: Generate Playlists
-- Step 1: Create a playlist structure to hold categorized songs.
-- Step 2: Populate the "Softer Genres Playlist" with songs from the softer genres category.
-- Step 3: Populate the "Upbeat Genres Playlist" with songs from the upbeat genres category.
-- Step 4: Ensure each playlist is formatted for compatibility with the Subsonic API.
-
-#### Task 6: Create and Update Playlists via API
-- Step 1: Implement a function to create playlists using the opensubsonic API endpoint.
-- Step 2: Create or update the "Softer Genres Playlist" at the API endpoint, overwriting any existing playlist with the same base name pattern.
-- Step 3: Create or update the "Upbeat Genres Playlist" at the API endpoint, overwriting any existing playlist with the same base name pattern.
-- Step 4: Handle API errors gracefully, such as authentication failures or network issues.
-- Step 5: Log playlist creation results for monitoring (suitable for cron job execution).
-- Step 6: Implement idempotent playlist operations to safely replace previous day's playlists using pattern matching.
-
-### Playlist Quality Criteria and Heuristics
-
-To create high-quality playlists that resemble Spotify's Daily Mixes, we should implement the following criteria and heuristics based on our available metadata:
-
-#### Artist Diversity (Available Metadata: `artist`, `artist_id`, `album_id`)
-- **No consecutive songs by the same artist**: Avoid playing two songs by the same artist back-to-back
-- **Artist spacing**: Maintain at least 3-5 songs between tracks by the same artist
-- **Artist frequency limit**: Limit any single artist to maximum 10-15% of the total playlist
-- **Album diversity**: Avoid too many songs from the same album consecutively
-
-#### Genre and Mood Flow (Available Metadata: `genre`, `bpm`)
-- **Smooth BPM transitions**: Ensure BPM doesn't jump drastically between consecutive songs (max ±20 BPM difference)
-- **Genre coherence**: Keep related subgenres together while maintaining overall category consistency
-- **BPM progression**: Create logical tempo progressions within playlist sections
-- **Energy curve**: Build natural energy flows using BPM as a proxy for energy level
-
-#### Temporal Considerations (Available Metadata: `year`)
-- **Era mixing**: Blend different decades appropriately - don't cluster all old or new music together
-- **Release year spacing**: Avoid too many songs from the same year consecutively
-- **Decade balance**: Include variety across different decades when possible
-
-#### User Preference Integration (Available Metadata: `play_count`, `starred`, `played`)
-- **Play count weighting**: Favor songs with higher play counts (user preference indicator)
-- **Starred track priority**: Include starred/favorited tracks more prominently
-- **Recent play consideration**: Factor in when songs were last played to avoid immediate repetition
-- **Discovery balance**: Mix popular (high play count) with less-played tracks
-
-#### Technical Audio Quality (Available Metadata: `duration`, `bit_rate`)
-- **Duration variety**: Mix song lengths - avoid too many very short or very long tracks in sequence
-- **Audio quality consistency**: Maintain consistent bit rates when possible
-- **Track positioning**: Consider track numbers for natural album flow when including multiple songs from same album
-
-#### Playlist Structure Optimization
-- **Playlist length**: Target 30-50 songs for daily mixes (calculated from duration metadata)
-- **Frontload favorites**: Place starred tracks and high play count songs earlier in the playlist
-- **Natural album flow**: When including multiple tracks from the same album, respect original track order when possible
-
-#### Implementation Priority (Based on Available Data)
-1. **Phase 1**: Artist diversity, basic BPM transitions, genre categorization
-2. **Phase 2**: Year/era mixing, play count weighting, duration balancing  
-3. **Phase 3**: Starred track integration, recent play avoidance, album flow optimization
-4. **Phase 4**: Advanced BPM curve optimization, multi-criteria scoring system
-
-#### Available Metadata Summary
-Our OpenSubsonic API provides the following useful fields for playlist generation:
-- **Core Info**: `title`, `artist`, `album`, `genre`, `year`, `duration`, `bpm`
-- **User Data**: `play_count`, `starred`, `played` (last played timestamp)
-- **Organization**: `track`, `disc_number`, `album_id`, `artist_id`
-- **Technical**: `bit_rate`, `content_type`
-
-#### Non-Song Filtering
-The application automatically filters out non-musical content using heuristics based on track titles and metadata:
-
-- **Interludes & Transitions**: "interlude", "intro", "outro", "bridge", "transition"
-- **Sketches & Fragments**: "sketch", "fragment", "snippet", "bits"
-- **Spoken Content**: "monologue", "dialogue", "speech", "interview"
-- **Ambient Non-Songs**: "atmosphere", "soundscape", "field recording", "rain", "ocean"
-- **Duration-Based**: Tracks shorter than 30 seconds or longer than 15 minutes
-- **Instrumental Markers**: Short tracks with "(instrumental)" in parentheses
-- **Other Indicators**: "silence", "test", "announcement", numeric-only titles
-
-This ensures playlists contain only actual songs rather than interludes, sketches, or other non-musical content.
-
-#### Smart Playlist Management
-The application uses intelligent playlist management to handle daily updates:
-
-- **Pattern-Based Cleanup**: Instead of exact name matching, it uses base name patterns to find existing playlists
-- **Dynamic Genre Handling**: Playlist names include dominant genres (e.g., "Chill Vibes · Rock"), which can change daily
-- **Automatic Cleanup**: All existing playlists matching the base pattern (e.g., "Chill Vibes") are removed before creating new ones
-- **Example**: 
-  - Day 1: Creates "Chill Vibes · Jazz"
-  - Day 2: Removes "Chill Vibes · Jazz" and creates "Chill Vibes · Folk"
-  - This ensures only one playlist of each type exists at any time
-
-#### Limitations and Future Enhancements
-- **Missing Audio Analysis**: No key signature, acousticness, energy, or valence data
-- **Limited User Context**: No listening history patterns or collaborative filtering data  
-- **No Seasonal Data**: No holiday or seasonal relevance information
-- **Future API Enhancement**: Consider integrating with additional music analysis APIs for advanced features
-
-### Future Enhancements
-- ~~Add support for saving playlists to a file.~~ ✅ **IMPLEMENTED: API playlist creation**
-- Allow users to specify custom genres or BPM ranges for playlist generation.
-- Implement the playlist quality heuristics listed above.
-- Add machine learning models for better song recommendations.
-- Create user preference learning and feedback systems.
-- Add configuration file support for playlist names and criteria.
-- Implement more sophisticated error handling and retry logic.
-- Add support for playlist descriptions and metadata in API calls.
+- [Navidrome](https://github.com/navidrome/navidrome) - Modern Music Server and Streamer
+- [Airsonic](https://github.com/airsonic/airsonic) - Free, web-based media streamer
+- [OpenSubsonic API](http://www.subsonic.org/pages/api.jsp) - API specification

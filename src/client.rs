@@ -36,9 +36,6 @@ impl SubsonicClient {
         // Calculate token = md5(password + salt)
         let token = format!("{:x}", md5::compute(&format!("{}{}", self.password, salt)));
         
-        println!("Debug - Username: {}, Password: {}, Salt: {}, Token: {}", 
-            self.username, self.password, salt, token);
-        
         (salt, token)
     }
 
@@ -55,19 +52,14 @@ impl SubsonicClient {
             salt
         );
 
-        println!("Trying token auth - Ping URL: {}", url_token);
-
         let response = self.agent.get(&url_token)
             .call()
             .map_err(|e| anyhow::anyhow!("Ping failed: {}", e))?;
         
         let response_text = response.into_string()?;
-        println!("Token auth response: {}", response_text);
         
         // If token auth failed, try password auth
         if response_text.contains("\"status\":\"failed\"") {
-            println!("Token auth failed, trying password auth...");
-            
             let url_password = format!(
                 "{}/rest/ping?u={}&p={}&v=1.12.0&c=PlaylistGenerator&f=json",
                 self.base_url.trim_end_matches('/'),
@@ -75,14 +67,11 @@ impl SubsonicClient {
                 encode(&self.password)
             );
             
-            println!("Trying password auth - Ping URL: {}", url_password);
-            
             let response2 = self.agent.get(&url_password)
                 .call()
                 .map_err(|e| anyhow::anyhow!("Password ping failed: {}", e))?;
             
             let response_text2 = response2.into_string()?;
-            println!("Password auth response: {}", response_text2);
             
             Ok(response_text2)
         } else {
@@ -104,8 +93,6 @@ impl SubsonicClient {
             salt,
             size
         );
-
-        println!("Requesting URL: {}", url);
 
         // Send GET request
         let response = self.agent.get(&url)
@@ -131,88 +118,6 @@ impl SubsonicClient {
             Some(random_songs) => Ok(random_songs.song),
             None => Ok(vec![]),
         }
-    }
-
-    /// Fetch random songs by genre from the Subsonic API
-    pub fn fetch_songs_by_genre(&self, genre: &str, count: Option<u32>) -> Result<Vec<Song>> {
-        let (salt, token) = self.generate_auth_params();
-        
-        // Build URL with query parameters including genre filter
-        let size = count.unwrap_or(50);
-        let url = format!(
-            "{}/rest/getRandomSongs?u={}&t={}&s={}&v=1.16.1&c=PlaylistGenerator&f=json&size={}&genre={}",
-            self.base_url.trim_end_matches('/'),
-            self.username,
-            token,
-            salt,
-            size,
-            urlencoding::encode(genre)
-        );
-
-        println!("Requesting songs by genre '{}': {}", genre, url);
-
-        // Send GET request
-        let response = self.agent.get(&url)
-            .call()
-            .map_err(|e| anyhow::anyhow!("HTTP request failed: {}", e))?;
-        
-        let response_text = response.into_string()?;
-        
-        // Parse JSON response
-        let parsed_response: RandomSongsResponse = serde_json::from_str(&response_text)
-            .map_err(|e| anyhow::anyhow!("Failed to parse JSON response: {}", e))?;
-        
-        // Check if the response is successful
-        if parsed_response.subsonic_response.status != "ok" {
-            return Err(anyhow::anyhow!("API returned error status: {}", parsed_response.subsonic_response.status));
-        }
-        
-        // Extract songs from response
-        match parsed_response.subsonic_response.random_songs {
-            Some(random_songs) => Ok(random_songs.song),
-            None => Ok(vec![]),
-        }
-    }
-
-    /// Fetch a large, diverse set of songs using multiple strategies
-    pub fn fetch_diverse_songs(&self, total_target: u32) -> Result<Vec<Song>> {
-        let mut all_songs = Vec::new();
-        
-        // Strategy 1: Fetch a large base set of random songs
-        println!("Fetching {} random songs as base set...", total_target / 2);
-        let random_songs = self.fetch_songs(Some(total_target / 2))?;
-        all_songs.extend(random_songs);
-        
-        // Strategy 2: Target specific popular genres to ensure good coverage
-        let target_genres = [
-            "rock", "pop", "electronic", "hip hop", "jazz", "classical", 
-            "folk", "dance", "indie", "alternative", "funk", "soul"
-        ];
-        
-        let songs_per_genre = (total_target / 2) / target_genres.len() as u32;
-        let songs_per_genre = songs_per_genre.max(10); // At least 10 songs per genre
-        
-        println!("Fetching songs by genre to ensure diversity...");
-        for genre in &target_genres {
-            match self.fetch_songs_by_genre(genre, Some(songs_per_genre)) {
-                Ok(genre_songs) => {
-                    println!("  Found {} songs for genre '{}'", genre_songs.len(), genre);
-                    all_songs.extend(genre_songs);
-                }
-                Err(e) => {
-                    println!("  Warning: Failed to fetch songs for genre '{}': {}", genre, e);
-                    // Continue with other genres
-                }
-            }
-        }
-        
-        // Remove duplicates based on song ID
-        all_songs.sort_by(|a, b| a.id.cmp(&b.id));
-        all_songs.dedup_by(|a, b| a.id == b.id);
-        
-        println!("Fetched {} unique songs total (target was {})", all_songs.len(), total_target);
-        
-        Ok(all_songs)
     }
 
     /// Get all existing playlists
