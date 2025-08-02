@@ -1,0 +1,96 @@
+use serde::{Deserialize, Serialize};
+
+/// Configuration for playlist generation heuristics
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaylistConfig {
+    pub name: String,                            // Name for this playlist configuration
+    pub acceptable_genres: Option<Vec<String>>,
+    pub bpm_thresholds: Option<BpmThresholds>,
+    pub quality_weights: QualityWeights,
+    pub transition_rules: TransitionRules,
+    pub preference_weights: PreferenceWeights,
+    pub target_length: Option<usize>,            // Default target length for this playlist type
+}
+
+/// BPM range for playlist filtering
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct BpmThresholds {
+    pub min_bpm: u32,
+    pub max_bpm: u32,
+}
+
+/// Weights for different quality factors (0.0 to 1.0)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct QualityWeights {
+    pub artist_diversity: f32,
+    pub bpm_transition_smoothness: f32,
+    pub genre_coherence: f32,
+    pub popularity_balance: f32,
+    pub duration_consistency: f32,
+    pub era_cohesion: f32,
+}
+
+/// Rules for transitions between songs
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct TransitionRules {
+    pub max_bpm_jump: u32,
+    pub preferred_bpm_change: i32,  // negative for slowdown, positive for speedup
+    pub avoid_artist_repeats_within: usize,  // number of songs
+}
+
+/// Weights for preference scoring (0.0 to 1.0)
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PreferenceWeights {
+    pub starred_boost: f32,           // Boost for starred tracks
+    pub play_count_weight: f32,       // Weight for play count contribution
+    pub recency_penalty_weight: f32,  // Weight for recency penalty
+    pub randomness_factor: f32,       // Random variation factor
+    pub discovery_mode: bool,         // Use discovery scoring (inverts play count logic)
+}
+
+/// Collection of playlist configurations loaded from JSON
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct PlaylistConfigs {
+    pub playlists: Vec<PlaylistConfig>,
+}
+
+impl Default for PlaylistConfig {
+    fn default() -> Self {
+        Self {
+            name: "Default Playlist".to_string(),
+            acceptable_genres: None,
+            bpm_thresholds: None,
+            quality_weights: QualityWeights {
+                artist_diversity: 0.25,
+                bpm_transition_smoothness: 0.20,
+                genre_coherence: 0.15,
+                popularity_balance: 0.15,
+                duration_consistency: 0.10,
+                era_cohesion: 0.15,
+            },
+            transition_rules: TransitionRules {
+                max_bpm_jump: 20,
+                preferred_bpm_change: 0,  // neutral by default
+                avoid_artist_repeats_within: 3,
+            },
+            preference_weights: PreferenceWeights {
+                starred_boost: 100.0,
+                play_count_weight: 20.0,
+                recency_penalty_weight: 5.0,
+                randomness_factor: 0.2,
+                discovery_mode: false,
+            },
+            target_length: Some(20),
+        }
+    }
+}
+
+impl PlaylistConfig {
+
+    /// Load playlist configurations directly from a JSON array file
+    pub fn load_all_from_file(path: &str) -> Result<Vec<PlaylistConfig>, Box<dyn std::error::Error>> {
+        let content = std::fs::read_to_string(path)?;
+        let configs: Vec<PlaylistConfig> = serde_json::from_str(&content)?;
+        Ok(configs)
+    }
+}

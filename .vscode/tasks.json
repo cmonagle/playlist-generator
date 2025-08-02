@@ -1,0 +1,20 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Generate Daily Playlists",
+			"type": "shell",
+			"command": "cargo",
+			"args": [
+				"run",
+				"--",
+				"--debug"
+			],
+			"group": "build",
+			"isBackground": false,
+			"problemMatcher": [
+				"$rustc"
+			]
+		}
+	]
+}
