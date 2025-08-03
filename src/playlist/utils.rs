@@ -1,5 +1,3 @@
-use std::vec;
-
 use chrono::Local;
 use rand::seq::SliceRandom;
 
@@ -41,7 +39,7 @@ impl PlaylistNaming {
                 return format!("{} {} {}", name, day_of_week, genre.to_title_case())
                     .to_lowercase();
             } else {
-                let backup_playlist_name_suffixes = vec![
+                let backup_playlist_name_suffixes = [
                     "tunes", "vibes", "jams", "melodies", "grooves", "beats", "rhythms", "sounds",
                     "tracks",
                 ];

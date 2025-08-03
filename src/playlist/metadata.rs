@@ -46,5 +46,6 @@ pub struct PlaylistMetadata {
     pub genre_distribution: HashMap<String, usize>,
     pub artist_count: usize,
     pub era_span: (Option<u32>, Option<u32>), // (min_year, max_year)
+    #[allow(dead_code)]
     pub avg_popularity: f32,
 }

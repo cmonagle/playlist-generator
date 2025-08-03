@@ -70,10 +70,9 @@ impl PlaylistGenerator {
         let mut remaining_songs = candidate_songs;
 
         while playlist.len() < target_length && !remaining_songs.is_empty() {
-            let mut best_candidate_index = None;
-            let mut best_quality_score = f32::NEG_INFINITY;
+            let mut best_candidate_index: Option<usize> = None;
+            let mut best_quality_score = 0.0;
             let mut best_transition_score = 0.0;
-            let mut attempts = 0;
 
             // Calculate current playlist quality for comparison
             let current_playlist_songs: Vec<Song> =
@@ -91,7 +90,7 @@ impl PlaylistGenerator {
 
             // Try candidates in order of preference score (already sorted)
             for (i, candidate) in remaining_songs.iter().enumerate() {
-                if attempts >= 10 {
+                if i >= 10 {
                     break; // Could make this smarter - maybe continue if we haven't found ANY viable candidate
                 }
 
@@ -134,8 +133,6 @@ impl PlaylistGenerator {
                     best_quality_score = combined_score;
                     best_transition_score = transition_score;
                 }
-
-                attempts += 1;
             }
 
             // Add the best candidate we found, or fallback to first available
@@ -203,7 +200,7 @@ impl PlaylistGenerator {
     /// Calculate BPM transition score between two songs
     fn calculate_bpm_transition_score(&self, song_a: &Song, song_b: &Song) -> f32 {
         if let (Some(bpm_a), Some(bpm_b)) = (song_a.bpm, song_b.bpm) {
-            let bpm_diff = (bpm_a as i32 - bpm_b as i32).abs() as u32;
+            let bpm_diff = (bpm_a as i32 - bpm_b as i32).unsigned_abs();
 
             // Use transition rules from config
             let max_jump = self.config.transition_rules.max_bpm_jump;

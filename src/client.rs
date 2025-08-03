@@ -32,7 +32,7 @@ impl SubsonicClient {
         // Generate a random salt (at least 6 characters)
         let salt = format!(
             "{:x}",
-            md5::compute(&format!(
+            md5::compute(format!(
                 "{}{}",
                 std::time::SystemTime::now()
                     .duration_since(std::time::UNIX_EPOCH)
@@ -44,7 +44,7 @@ impl SubsonicClient {
             .to_string();
 
         // Calculate token = md5(password + salt)
-        let token = format!("{:x}", md5::compute(&format!("{}{}", self.password, salt)));
+        let token = format!("{:x}", md5::compute(format!("{}{}", self.password, salt)));
 
         (salt, token)
     }

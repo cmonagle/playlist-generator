@@ -80,8 +80,8 @@ impl SongFilters {
         });
 
         // Additional heuristics
-        let too_short = song.duration.map_or(false, |d| d < 60); // Less than 60 seconds
-        let too_long = song.duration.map_or(false, |d| d > 600); // More than 10 minutes (likely DJ mix/compilation)
+        let too_short = song.duration.is_some_and(|d| d < 60); // Less than 60 seconds
+        let too_long = song.duration.is_some_and(|d| d > 600); // More than 10 minutes (likely DJ mix/compilation)
 
         // Check for titles that are just numbers or very short
         let is_just_number_or_short = title_lower.trim().len() <= 2
@@ -96,7 +96,7 @@ impl SongFilters {
             title_lower.contains("(outro)") ||
             title_lower.contains("(sketch)") ||
             // Only filter short instrumentals (likely interludes), not long ones (likely actual songs)
-            (title_lower.contains("(instrumental)") && song.duration.map_or(false, |d| d < 90));
+            (title_lower.contains("(instrumental)") && song.duration.is_some_and(|d| d < 90));
 
         // Check if title starts with "track " followed by a number (common for untitled tracks)
         let is_track_number = title_lower.starts_with("track ")

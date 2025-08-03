@@ -121,7 +121,7 @@ fn main() -> Result<()> {
     let original_count = songs.len();
     let actual_songs: Vec<Song> = songs
         .into_iter()
-        .filter(|song| crate::playlist::filters::SongFilters::is_actual_song(song))
+        .filter(crate::playlist::filters::SongFilters::is_actual_song)
         .collect();
 
     let filtered_out_count = original_count - actual_songs.len();

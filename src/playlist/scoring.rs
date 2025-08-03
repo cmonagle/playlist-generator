@@ -286,7 +286,7 @@ impl PlaylistScoring {
             0.5 + (coefficient_of_variation - 0.3) / 0.7 * 0.5
         } else {
             // Very high variation = extremely unbalanced
-            (2.0 - coefficient_of_variation).max(0.0).min(1.0)
+            (2.0 - coefficient_of_variation).clamp(0.0, 1.0)
         }
     }
 
@@ -303,7 +303,7 @@ impl PlaylistScoring {
         let mut transition_count = 0;
 
         for i in 0..bpms.len() - 1 {
-            let diff = (bpms[i + 1] as i32 - bpms[i] as i32).abs() as u32;
+            let diff = (bpms[i + 1] as i32 - bpms[i] as i32).unsigned_abs();
 
             // Calculate smoothness: 1.0 = very smooth, 0.0 = very jarring
             let smoothness = if diff <= 5 {

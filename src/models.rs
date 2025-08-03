@@ -127,6 +127,7 @@ pub struct CreatePlaylistResponse {
 #[derive(Debug, Deserialize)]
 pub struct CreatePlaylistSubsonicResponse {
     pub status: String,
+    #[allow(dead_code)]
     pub version: String,
     pub playlist: Option<CreatedPlaylist>,
 }
@@ -134,12 +135,18 @@ pub struct CreatePlaylistSubsonicResponse {
 #[derive(Debug, Deserialize)]
 pub struct CreatedPlaylist {
     pub id: String,
+    #[allow(dead_code)]
     pub name: String,
     #[serde(rename = "songCount")]
+    #[allow(dead_code)]
     pub song_count: Option<u32>,
+    #[allow(dead_code)]
     pub duration: Option<u32>,
+    #[allow(dead_code)]
     pub public: Option<bool>,
+    #[allow(dead_code)]
     pub created: Option<String>,
+    #[allow(dead_code)]
     pub changed: Option<String>,
 }
 
@@ -153,6 +160,7 @@ pub struct GetPlaylistsResponse {
 #[derive(Debug, Deserialize)]
 pub struct GetPlaylistsSubsonicResponse {
     pub status: String,
+    #[allow(dead_code)]
     pub version: String,
     pub playlists: Option<PlaylistsContainer>,
 }
@@ -167,9 +175,14 @@ pub struct PlaylistInfo {
     pub id: String,
     pub name: String,
     #[serde(rename = "songCount")]
+    #[allow(dead_code)]
     pub song_count: Option<u32>,
+    #[allow(dead_code)]
     pub duration: Option<u32>,
+    #[allow(dead_code)]
     pub public: Option<bool>,
+    #[allow(dead_code)]
     pub created: Option<String>,
+    #[allow(dead_code)]
     pub changed: Option<String>,
 }
