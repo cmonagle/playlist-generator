@@ -8,12 +8,14 @@ pub struct Playlist {
     pub songs: Vec<Song>,
     pub quality_score: f32,
     pub metadata: PlaylistMetadata,
+    pub base_name_pattern: String,
 }
 
 /// Metadata about the playlist composition
 #[derive(Debug)]
 pub struct PlaylistMetadata {
     pub total_duration: u32,  // in seconds
+    pub total_songs: usize,
     pub average_bpm: f32,
     pub bpm_range: (u32, u32),
     pub genre_distribution: HashMap<String, usize>,

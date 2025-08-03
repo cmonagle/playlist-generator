@@ -5,6 +5,7 @@ use serde::{Deserialize, Serialize};
 pub struct PlaylistConfig {
     pub name: String,                            // Name for this playlist configuration
     pub acceptable_genres: Option<Vec<String>>,
+    pub unacceptable_genres: Option<Vec<String>>,
     pub bpm_thresholds: Option<BpmThresholds>,
     pub quality_weights: QualityWeights,
     pub transition_rules: TransitionRules,
@@ -60,6 +61,7 @@ impl Default for PlaylistConfig {
         Self {
             name: "Default Playlist".to_string(),
             acceptable_genres: None,
+            unacceptable_genres: None,
             bpm_thresholds: None,
             quality_weights: QualityWeights {
                 artist_diversity: 0.30,

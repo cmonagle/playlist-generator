@@ -178,23 +178,11 @@ fn main() -> Result<()> {
         // Collect song IDs for API call
         let song_ids: Vec<String> = playlist.songs.iter().map(|song| song.id.clone()).collect();
         
-        // Determine the base name pattern for cleanup (remove genre-specific parts)
-        let base_name_pattern = if playlist.name.contains("Chill") {
-            "Daylist: Chill"
-        } else if playlist.name.contains("Upbeat") {
-            "Daylist: Upbeat"
-        } else if playlist.name.contains("Workout") {
-            "Workout Mix"
-        } else if playlist.name.contains("Discovery") {
-            "Discovery Mix"
-        } else {
-            &playlist.name // For other playlists, use the full name
-        };
         
         if args.debug {
             // Debug mode: print playlist details instead of uploading
             println!("\n🔍 DEBUG MODE: Playlist '{}' (would create via API)", playlist.name);
-            println!("   Would clean up existing playlists matching pattern: '{}'", base_name_pattern);
+            println!("   Would clean up existing playlists matching pattern: '{}'", playlist.base_name_pattern);
             println!("   Song IDs that would be added to playlist:");
             
             // Print detailed song information
@@ -251,8 +239,8 @@ fn main() -> Result<()> {
         } else {
             // Normal mode: Create playlist via API with pattern-based cleanup
             println!("\n🎵 Creating playlist '{}' via API...", playlist.name);
-            println!("   Cleaning up existing playlists matching pattern: '{}'", base_name_pattern);
-            match client.create_playlist_with_pattern_cleanup(&playlist.name, base_name_pattern, &song_ids) {
+            println!("   Cleaning up existing playlists matching pattern: '{}'", playlist.base_name_pattern);
+            match client.create_playlist_with_pattern_cleanup(&playlist.name, &playlist.base_name_pattern, &song_ids) {
                 Ok(playlist_id) => {
                     println!("✓ Successfully created playlist '{}' with ID: {}", playlist.name, playlist_id);
                     creation_results.push((playlist.name.clone(), true, format!("Created with ID: {}", playlist_id)));

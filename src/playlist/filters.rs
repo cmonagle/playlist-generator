@@ -94,6 +94,17 @@ impl SongFilters {
         song.matches_genre_patterns_string(acceptable_genres)
     }
     
+    /// Check if a song doesn't match any unacceptable genres
+    pub fn does_not_match_unacceptable_genres(song: &Song, config: &PlaylistConfig) -> bool {
+        // If no unacceptable genre filter is set, accept all songs
+        let Some(unacceptable_genres) = &config.unacceptable_genres else {
+            return true;
+        };
+        
+        // Check if the song does NOT match any of the unacceptable genre patterns
+        !song.matches_genre_patterns_string(unacceptable_genres)
+    }
+    
     /// Check if a song matches the BPM thresholds filter
     pub fn matches_bpm_thresholds(song: &Song, config: &PlaylistConfig) -> bool {
         // If no BPM filter is set, accept all songs
@@ -114,6 +125,7 @@ impl SongFilters {
     pub fn should_include_song(song: &Song, config: &PlaylistConfig) -> bool {
         Self::is_actual_song(song) &&
         Self::matches_acceptable_genres(song, config) &&
+        Self::does_not_match_unacceptable_genres(song, config) &&
         Self::matches_bpm_thresholds(song, config)
     }
 }

@@ -6,6 +6,7 @@ This document explains how to configure playlists using the `playlists.json` fil
 
 Each playlist configuration is a JSON object with the following structure:
 
+
 ### Basic Properties
 
 - **`name`** (string): The name of the playlist that will be created
@@ -13,7 +14,13 @@ Each playlist configuration is a JSON object with the following structure:
 
 ### Genre Filtering
 
-- **`acceptable_genres`** (array of strings): List of genres that are acceptable for this playlist. Songs must match at least one of these genres to be included. If undefined, all 
+- **`acceptable_genres`** (array of strings): List of genres that are acceptable for this playlist. Songs must match at least one of these genres to be included. If undefined, all genres are acceptable.
+
+- **`unacceptable_genres`** (array of strings): List of genres that should be excluded from this playlist. Songs matching any of these genres will be filtered out, even if they match acceptable_genres. If undefined, no genres are specifically excluded.
+
+**Note**: Both filters work together. A song must pass both filters to be included:
+1. Must match at least one acceptable genre (if acceptable_genres is defined)
+2. Must NOT match any unacceptable genre (if unacceptable_genres is defined) 
 
 ### BPM Thresholds (optional)
 
@@ -106,6 +113,27 @@ These weights determine how much you want each characteristic in your playlist. 
 }
 ```
 
+### Chill Playlist (Excluding Harsh Genres)
+```json
+{
+  "name": "Chill Mix",
+  "target_length": 30,
+  "acceptable_genres": ["Jazz", "Chillout", "Indie Folk", "Lo-Fi", "Ambient", "Downtempo"],
+  "unacceptable_genres": ["Metal", "Hardcore", "Punk", "Noise"],
+  "quality_weights": {
+    "artist_diversity": 0.6,
+    "bpm_transition_smoothness": 0.9,
+    "genre_coherence": 0.7,
+    "popularity_balance": 0.5,
+    "era_cohesion": 0.4
+  },
+  "preference_weights": {
+    "starred_boost": 40.0,
+    "discovery_mode": false
+  }
+}
+```
+
 ### High Energy Workout (Energetic & Dynamic)
 ```json
 {
@@ -167,3 +195,19 @@ This will show you:
 - Artist diversity statistics
 
 Adjust your weights and genres based on the results until you get playlists that match your preferences.
+
+## Tips for Configuration
+
+1. **Genre Selection**: Start broad and narrow down if playlists become too eclectic
+2. **Genre Filtering Logic**: 
+   - Songs must match at least one `acceptable_genres` (if specified)
+   - Songs must NOT match any `unacceptable_genres` (if specified)
+   - If a song matches both acceptable and unacceptable genres, it will be excluded
+   - Use `unacceptable_genres` to fine-tune playlists by removing unwanted sub-genres
+3. **Preference Weights**: Think about what you want, not what's "good" or "bad"
+   - Discovery playlist: Low genre_coherence (0.1-0.3) for variety
+   - Workout playlist: Low bpm_transition_smoothness (0.2-0.4) for energy changes
+   - Study playlist: High genre_coherence (0.8-1.0) and bmp_transition_smoothness (0.8-1.0)
+4. **Discovery Mode**: Great for finding new music but can feel random
+5. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
+6. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferencesJSON object with the following structure:

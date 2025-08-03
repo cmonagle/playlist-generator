@@ -86,6 +86,7 @@ impl PlaylistScoring {
                 artist_count: 0,
                 era_span: (None, None),
                 avg_popularity: 0.0,
+                total_songs: 0,
             };
         }
         
@@ -143,6 +144,7 @@ impl PlaylistScoring {
             artist_count,
             era_span,
             avg_popularity,
+            total_songs: songs.len(),
         }
     }
     
