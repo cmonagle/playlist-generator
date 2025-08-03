@@ -2,6 +2,8 @@
 
 A Rust application that generates playlists for OpenSubsonic servers using available music metadata. Creates playlists based on genre, BPM, and user listening data, with basic heuristics for song ordering and artist diversity.
 
+**Note**: This is a weekend project, using LLM code generation. Please use with caution! 
+
 ## Features
 
 - **Playlist Generation**: Creates playlists based on genre, BPM, and user preferences
