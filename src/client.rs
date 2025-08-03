@@ -304,7 +304,9 @@ impl SubsonicClient {
         );
         println!(
             "Updating playlist '{}' (ID: {}) with {} existing songs to remove...",
-            name, playlist_id, existing.len()
+            name,
+            playlist_id,
+            existing.len()
         );
         // Remove all existing tracks by index in descending order
         for idx in 0..existing.len() {

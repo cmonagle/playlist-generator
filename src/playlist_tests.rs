@@ -37,7 +37,7 @@ mod tests {
         let intro = create_test_song("Intro", Some(30));
         let outro = create_test_song("Outro (Extended)", Some(45));
         let actual_song = create_test_song("Beautiful Song", Some(180));
-        
+
         assert!(!SongFilters::is_actual_song(&interlude));
         assert!(!SongFilters::is_actual_song(&intro));
         assert!(!SongFilters::is_actual_song(&outro));
@@ -49,7 +49,7 @@ mod tests {
         let sketch = create_test_song("Comedy Sketch #3", Some(90));
         let fragment = create_test_song("Song Fragment", Some(25));
         let actual_song = create_test_song("Real Song Title", Some(210));
-        
+
         assert!(!SongFilters::is_actual_song(&sketch));
         assert!(!SongFilters::is_actual_song(&fragment));
         assert!(SongFilters::is_actual_song(&actual_song));
@@ -60,7 +60,7 @@ mod tests {
         let too_short = create_test_song("Short Track", Some(15)); // 15 seconds
         let too_long = create_test_song("Long Mix", Some(1200)); // 20 minutes
         let good_length = create_test_song("Normal Song", Some(240)); // 4 minutes
-        
+
         assert!(!SongFilters::is_actual_song(&too_short));
         assert!(!SongFilters::is_actual_song(&too_long));
         assert!(SongFilters::is_actual_song(&good_length));
@@ -72,7 +72,7 @@ mod tests {
         let monologue = create_test_song("Opening Monologue", Some(120));
         let spoken_word_song = create_test_song("Spoken Word Piece", Some(180)); // This contains "piece" so should be filtered
         let song_about_speech = create_test_song("Song About Speaking", Some(180)); // This should pass
-        
+
         assert!(!SongFilters::is_actual_song(&interview));
         assert!(!SongFilters::is_actual_song(&monologue));
         assert!(!SongFilters::is_actual_song(&spoken_word_song)); // Contains "piece"
@@ -85,7 +85,7 @@ mod tests {
         let intro_parens = create_test_song("Album Opener (Intro)", Some(45));
         let instrumental_short = create_test_song("Brief (Instrumental)", Some(60)); // 1 minute, should be filtered
         let instrumental_long = create_test_song("Epic Journey (Instrumental)", Some(420)); // 7 minutes, should pass
-        
+
         assert!(!SongFilters::is_actual_song(&interlude_parens));
         assert!(!SongFilters::is_actual_song(&intro_parens));
         assert!(!SongFilters::is_actual_song(&instrumental_short)); // Short instrumental filtered
@@ -94,9 +94,9 @@ mod tests {
 
     #[test]
     fn test_discovery_mode_scoring() {
-        use crate::playlist::{PlaylistConfig, PreferenceWeights, QualityWeights, TransitionRules};
         use crate::playlist::scoring::PlaylistScoring;
-        
+        use crate::playlist::{PlaylistConfig, PreferenceWeights, QualityWeights, TransitionRules};
+
         // Create discovery mode config
         let discovery_config = PlaylistConfig {
             name: "Discovery Test".to_string(),
@@ -124,7 +124,7 @@ mod tests {
             },
             target_length: Some(20),
         };
-        
+
         // Create normal mode config
         let normal_config = PlaylistConfig {
             preference_weights: PreferenceWeights {
@@ -136,36 +136,54 @@ mod tests {
             },
             ..discovery_config.clone()
         };
-        
+
         // Create songs with different play counts
         let unplayed_song = create_test_song("Unplayed Song", Some(180));
         let mut low_played_song = create_test_song("Low Played Song", Some(180));
         low_played_song.play_count = Some(2);
         let mut high_played_song = create_test_song("High Played Song", Some(180));
         high_played_song.play_count = Some(50);
-        
+
         // Test discovery mode - lower play counts should score higher
-        let unplayed_discovery_score = PlaylistScoring::calculate_preference_score(&unplayed_song, &discovery_config);
-        let low_discovery_score = PlaylistScoring::calculate_preference_score(&low_played_song, &discovery_config);
-        let high_discovery_score = PlaylistScoring::calculate_preference_score(&high_played_song, &discovery_config);
-        
-        assert!(unplayed_discovery_score > low_discovery_score, 
-            "Unplayed song should score higher than low played song in discovery mode. Unplayed: {}, Low: {}", 
-            unplayed_discovery_score, low_discovery_score);
-        assert!(low_discovery_score > high_discovery_score, 
-            "Low played song should score higher than high played song in discovery mode. Low: {}, High: {}", 
-            low_discovery_score, high_discovery_score);
-        
+        let unplayed_discovery_score =
+            PlaylistScoring::calculate_preference_score(&unplayed_song, &discovery_config);
+        let low_discovery_score =
+            PlaylistScoring::calculate_preference_score(&low_played_song, &discovery_config);
+        let high_discovery_score =
+            PlaylistScoring::calculate_preference_score(&high_played_song, &discovery_config);
+
+        assert!(
+            unplayed_discovery_score > low_discovery_score,
+            "Unplayed song should score higher than low played song in discovery mode. Unplayed: {}, Low: {}",
+            unplayed_discovery_score,
+            low_discovery_score
+        );
+        assert!(
+            low_discovery_score > high_discovery_score,
+            "Low played song should score higher than high played song in discovery mode. Low: {}, High: {}",
+            low_discovery_score,
+            high_discovery_score
+        );
+
         // Test normal mode - higher play counts should score higher
-        let unplayed_normal_score = PlaylistScoring::calculate_preference_score(&unplayed_song, &normal_config);
-        let low_normal_score = PlaylistScoring::calculate_preference_score(&low_played_song, &normal_config);
-        let high_normal_score = PlaylistScoring::calculate_preference_score(&high_played_song, &normal_config);
-        
-        assert!(high_normal_score > low_normal_score, 
-            "High played song should score higher than low played song in normal mode. High: {}, Low: {}", 
-            high_normal_score, low_normal_score);
-        assert!(low_normal_score > unplayed_normal_score, 
-            "Low played song should score higher than unplayed song in normal mode. Low: {}, Unplayed: {}", 
-            low_normal_score, unplayed_normal_score);
+        let unplayed_normal_score =
+            PlaylistScoring::calculate_preference_score(&unplayed_song, &normal_config);
+        let low_normal_score =
+            PlaylistScoring::calculate_preference_score(&low_played_song, &normal_config);
+        let high_normal_score =
+            PlaylistScoring::calculate_preference_score(&high_played_song, &normal_config);
+
+        assert!(
+            high_normal_score > low_normal_score,
+            "High played song should score higher than low played song in normal mode. High: {}, Low: {}",
+            high_normal_score,
+            low_normal_score
+        );
+        assert!(
+            low_normal_score > unplayed_normal_score,
+            "Low played song should score higher than unplayed song in normal mode. Low: {}, Unplayed: {}",
+            low_normal_score,
+            unplayed_normal_score
+        );
     }
 }

@@ -7,7 +7,7 @@ pub struct Song {
     pub title: String,
     pub artist: String,
     pub album: String,
-    pub genre: Option<String>, // Single genre field (legacy)
+    pub genre: Option<String>,      // Single genre field (legacy)
     pub genres: Option<Vec<Genre>>, // Multiple genres array (OpenSubsonic extension)
     pub bpm: Option<u32>,
     pub duration: Option<u32>,
@@ -21,7 +21,7 @@ pub struct Song {
     pub album_id: Option<String>,
     #[serde(rename = "artistId")]
     pub artist_id: Option<String>,
-    pub played: Option<String>, // Last played timestamp
+    pub played: Option<String>,  // Last played timestamp
     pub starred: Option<String>, // Starred timestamp (if favorited)
     #[serde(rename = "bitRate")]
     pub bit_rate: Option<u32>,
@@ -61,33 +61,33 @@ impl Song {
     /// Get all genres for this song, combining both single genre and genres array
     pub fn get_all_genres(&self) -> Vec<String> {
         let mut all_genres = Vec::new();
-        
+
         // Add the single genre if it exists
         if let Some(ref genre) = self.genre {
             all_genres.push(genre.to_lowercase());
         }
-        
+
         // Add all genres from the genres array if it exists
         if let Some(ref genres) = self.genres {
             for genre in genres {
                 all_genres.push(genre.name.to_lowercase());
             }
         }
-        
+
         // Remove duplicates and return
         all_genres.sort();
         all_genres.dedup();
         all_genres
     }
-    
+
     /// Check if this song matches any of the given genre patterns (String version)
     pub fn matches_genre_patterns_string(&self, patterns: &[String]) -> bool {
         let all_genres = self.get_all_genres();
-        
+
         patterns.iter().any(|pattern| {
-            all_genres.iter().any(|genre| 
-                genre.to_lowercase().contains(&pattern.to_lowercase())
-            )
+            all_genres
+                .iter()
+                .any(|genre| genre.to_lowercase().contains(&pattern.to_lowercase()))
         })
     }
 }
