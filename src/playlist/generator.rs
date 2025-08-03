@@ -94,6 +94,14 @@ impl PlaylistGenerator {
                     break; // Could make this smarter - maybe continue if we haven't found ANY viable candidate
                 }
 
+                // Hard constraint: Skip candidates that would violate artist repetition rules
+                let artist_score = self.calculate_artist_repetition_score(&current_playlist_songs, candidate);
+                if artist_score < 0.3 {
+                    println!("      SKIPPING '{}' by {} due to artist repetition constraint (score: {})", 
+                             candidate.title, candidate.artist, artist_score);
+                    continue;
+                }
+
                 // Calculate transition score for this candidate against the working playlist
                 let transition_score =
                     self.calculate_playlist_transition_score(&current_playlist_songs, candidate);
@@ -182,16 +190,17 @@ impl PlaylistGenerator {
         // 1. BPM transition - only check against the last song
         if let Some(last_song) = current_playlist.last() {
             let bpm_score = self.calculate_bpm_transition_score(last_song, candidate);
-            total_score += bpm_score * 0.33;
+            total_score += bpm_score * 0.25;
         }
 
         // 2. Artist repetition - check against recent songs based on avoid_artist_repeats_within
+        // Give this much higher weight since it's a hard constraint we want to enforce
         let artist_score = self.calculate_artist_repetition_score(current_playlist, candidate);
-        total_score += artist_score * 0.33;
+        total_score += artist_score * 0.6; // Increased from 0.33 to 0.6
 
         // 3. Genre compatibility - check against the overall playlist genre distribution
         let genre_score = self.calculate_genre_compatibility_score(current_playlist, candidate);
-        total_score += genre_score * 0.33;
+        total_score += genre_score * 0.15; // Reduced from 0.33 to 0.15
 
         // Return the weighted sum (should be between 0.0 and 1.0 if weights sum to 1.0)
         total_score
@@ -239,21 +248,22 @@ impl PlaylistGenerator {
 
         // Check if candidate artist appears in recent songs
         for (index, recent_song) in recent_songs.iter().enumerate() {
-            // println!(
-            //     "      Position {}: '{}' == '{}' ? {}",
-            //     current_playlist.len() - check_count + i + 1,
-            //     recent_song.artist,
-            //     candidate.artist,
-            //     recent_song.artist == candidate.artist
-            // );
+            println!(
+                "      Position {}: '{}' == '{}' ? {}",
+                current_playlist.len() - check_count + index + 1,
+                recent_song.artist,
+                candidate.artist,
+                recent_song.artist == candidate.artist
+            );
 
             if recent_song.artist == candidate.artist {
-                // Artist repetition found - return strong penalty based on how recent
+                // Artist repetition found - return much stronger penalty based on how recent
                 // index 0 = oldest in recent_songs, index (check_count-1) = newest
                 // Higher index = more recent = lower score (higher penalty)
                 let recency_factor = (index + 1) as f32 / check_count as f32; // Range: 1/check_count to 1.0
-                // Convert to penalty: more recent (higher recency_factor) = lower score
-                let penalty = 0.5 * (1.0 - recency_factor); // Range: 0.0 (most recent) to ~0.5 (oldest)
+                // Convert to penalty: more recent (higher recency_factor) = much lower score
+                // Use a much stronger penalty - 0.0 for most recent, up to 0.2 for oldest
+                let penalty = 0.2 * (1.0 - recency_factor); // Range: 0.0 (most recent) to ~0.2 (oldest)
 
                 println!(
                     "      ARTIST REPETITION PENALTY: {} matches {} at recent position {}: Score {} (recency: {})",
