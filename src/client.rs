@@ -334,9 +334,7 @@ impl SubsonicClient {
             .and_then(|s| s.as_str())
         {
             if status == "ok" {
-                println!(
-                    "✓ Successfully updated playlist '{name}' (ID: {playlist_id})"
-                );
+                println!("✓ Successfully updated playlist '{name}' (ID: {playlist_id})");
                 Ok(playlist_id.to_string())
             } else {
                 Err(anyhow::anyhow!(

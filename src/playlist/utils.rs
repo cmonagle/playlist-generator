@@ -36,8 +36,7 @@ impl PlaylistNaming {
         // Include dominant genre only if it covers at least 51% of songs
         if let Some((genre, &count)) = metadata.genre_distribution.iter().max_by_key(|(_, c)| *c) {
             if metadata.total_songs > 0 && (count as f32 / metadata.total_songs as f32) >= 0.51 {
-                return format!("{name} {day_of_week} {}", genre.to_title_case())
-                    .to_lowercase();
+                return format!("{name} {day_of_week} {}", genre.to_title_case()).to_lowercase();
             } else {
                 let backup_playlist_name_suffixes = [
                     "tunes", "vibes", "jams", "melodies", "grooves", "beats", "rhythms", "sounds",

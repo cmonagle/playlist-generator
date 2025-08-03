@@ -126,9 +126,7 @@ fn main() -> Result<()> {
 
     let filtered_out_count = original_count - actual_songs.len();
     if filtered_out_count > 0 {
-        println!(
-            "Filtered out {filtered_out_count} non-songs (interludes, sketches, etc.)"
-        );
+        println!("Filtered out {filtered_out_count} non-songs (interludes, sketches, etc.)");
     }
     println!(
         "Using {} actual songs for playlist generation",
@@ -342,9 +340,7 @@ fn main() -> Result<()> {
         .count();
     let total_attempts = creation_results.len();
 
-    println!(
-        "Successfully created {successful_creations}/{total_attempts} playlists"
-    );
+    println!("Successfully created {successful_creations}/{total_attempts} playlists");
 
     for (name, success, message) in &creation_results {
         let status = if *success { "✓" } else { "✗" };
