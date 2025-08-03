@@ -1,6 +1,5 @@
 use super::filters::SongFilters;
 use super::scoring::PlaylistScoring;
-use super::utils;
 use super::{Playlist, PlaylistConfig, PlaylistSong};
 use crate::models::Song;
 use crate::playlist::utils::PlaylistNaming;

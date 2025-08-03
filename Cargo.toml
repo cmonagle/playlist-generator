@@ -2,6 +2,11 @@
 name = "playlist-generator"
 version = "0.1.0"
 edition = "2024"
+description = "A Rust application that generates playlists using the OpenSubsonic API with heuristics and metadata"
+license = "MIT"
+homepage = "https://github.com/cmonagle/playlist-generator-rust"
+repository = "https://github.com/cmonagle/playlist-generator-rust"
+documentation = "https://github.com/cmonagle/playlist-generator-rust"
 
 [dependencies]
 ureq = { version = "2.9", features = ["json"] }
