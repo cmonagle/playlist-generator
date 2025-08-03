@@ -176,7 +176,7 @@ fn main() -> Result<()> {
         }
         
         // Collect song IDs for API call
-        let song_ids: Vec<String> = playlist.songs.iter().map(|song| song.id.clone()).collect();
+        let song_ids: Vec<String> = playlist.songs.iter().map(|playlist_song| playlist_song.song.id.clone()).collect();
         
         
         if args.debug {
@@ -186,7 +186,8 @@ fn main() -> Result<()> {
             println!("   Song IDs that would be added to playlist:");
             
             // Print detailed song information
-            for (i, song) in playlist.songs.iter().enumerate() {
+            for (i, playlist_song) in playlist.songs.iter().enumerate() {
+                let song = &playlist_song.song;
                 let all_genres = song.get_all_genres();
                 let genres_display = if all_genres.is_empty() { 
                     "Unknown".to_string() 
@@ -206,12 +207,31 @@ fn main() -> Result<()> {
                     starred_indicator,
                     play_count_display
                 );
+                
+                // Add transition score and selection reason to debug output
+                let transition_info = if let Some(score) = playlist_song.transition_score {
+                    format!(" | Transition: {:.2}", score)
+                } else {
+                    String::new()
+                };
+                
+                let quality_info = if let Some(contrib) = playlist_song.quality_contribution {
+                    format!(" | Quality Δ: {:.2}", contrib)
+                } else {
+                    String::new()
+                };
+                
                 println!("        Album: {} | Genres: {} | BPM: {} | Duration: {}s | ID: {}", 
                     song.album,
                     genres_display,
                     song.bpm.unwrap_or(0),
                     song.duration.unwrap_or(0),
                     song.id
+                );
+                println!("        Selection: {}{}{}", 
+                    playlist_song.selection_reason,
+                    transition_info,
+                    quality_info
                 );
                 
                 // Show year and additional metadata if available

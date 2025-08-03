@@ -1,6 +1,8 @@
-use anyhow::Result;
 use crate::config::Config;
-use crate::models::{Song, RandomSongsResponse, CreatePlaylistResponse, GetPlaylistsResponse, PlaylistInfo};
+use crate::models::{
+    CreatePlaylistResponse, GetPlaylistsResponse, PlaylistInfo, RandomSongsResponse, Song,
+};
+use anyhow::Result;
 use ureq::Agent;
 use urlencoding::encode;
 
@@ -16,7 +18,7 @@ impl SubsonicClient {
     /// Create a new client with configuration from environment
     pub fn new(config: Config) -> Self {
         let agent = Agent::new();
-        
+
         SubsonicClient {
             agent,
             base_url: config.base_url,
@@ -28,14 +30,22 @@ impl SubsonicClient {
     /// Generate authentication parameters using salt + token method
     fn generate_auth_params(&self) -> (String, String) {
         // Generate a random salt (at least 6 characters)
-        let salt = format!("{:x}", md5::compute(&format!("{}{}", 
-            std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap().as_nanos(),
-            "playlist-gen"
-        )))[..8].to_string();
-        
+        let salt = format!(
+            "{:x}",
+            md5::compute(&format!(
+                "{}{}",
+                std::time::SystemTime::now()
+                    .duration_since(std::time::UNIX_EPOCH)
+                    .unwrap()
+                    .as_nanos(),
+                "playlist-gen"
+            ))
+        )[..8]
+            .to_string();
+
         // Calculate token = md5(password + salt)
         let token = format!("{:x}", md5::compute(&format!("{}{}", self.password, salt)));
-        
+
         (salt, token)
     }
 
@@ -43,7 +53,7 @@ impl SubsonicClient {
     pub fn ping(&self) -> Result<String> {
         // First try token-based auth (v1.13.0+)
         let (salt, token) = self.generate_auth_params();
-        
+
         let url_token = format!(
             "{}/rest/ping?u={}&t={}&s={}&v=1.16.1&c=PlaylistGenerator&f=json",
             self.base_url.trim_end_matches('/'),
@@ -52,12 +62,14 @@ impl SubsonicClient {
             salt
         );
 
-        let response = self.agent.get(&url_token)
+        let response = self
+            .agent
+            .get(&url_token)
             .call()
             .map_err(|e| anyhow::anyhow!("Ping failed: {}", e))?;
-        
+
         let response_text = response.into_string()?;
-        
+
         // If token auth failed, try password auth
         if response_text.contains("\"status\":\"failed\"") {
             let url_password = format!(
@@ -66,13 +78,15 @@ impl SubsonicClient {
                 encode(&self.username),
                 encode(&self.password)
             );
-            
-            let response2 = self.agent.get(&url_password)
+
+            let response2 = self
+                .agent
+                .get(&url_password)
                 .call()
                 .map_err(|e| anyhow::anyhow!("Password ping failed: {}", e))?;
-            
+
             let response_text2 = response2.into_string()?;
-            
+
             Ok(response_text2)
         } else {
             Ok(response_text)
@@ -82,7 +96,7 @@ impl SubsonicClient {
     /// Fetch random songs from the Subsonic API
     pub fn fetch_songs(&self, count: Option<u32>) -> Result<Vec<Song>> {
         let (salt, token) = self.generate_auth_params();
-        
+
         // Build URL with query parameters
         let size = count.unwrap_or(100);
         let url = format!(
@@ -95,24 +109,29 @@ impl SubsonicClient {
         );
 
         // Send GET request
-        let response = self.agent.get(&url)
+        let response = self
+            .agent
+            .get(&url)
             .call()
             .map_err(|e| anyhow::anyhow!("HTTP request failed: {}", e))?;
-        
+
         let response_text = response.into_string()?;
-        
+
         // Debug: print response to see what we're getting
         // println!("API Response: {}", response_text);
-        
+
         // Parse JSON response
         let parsed_response: RandomSongsResponse = serde_json::from_str(&response_text)
             .map_err(|e| anyhow::anyhow!("Failed to parse JSON response: {}", e))?;
-        
+
         // Check if the response is successful
         if parsed_response.subsonic_response.status != "ok" {
-            return Err(anyhow::anyhow!("API returned error status: {}", parsed_response.subsonic_response.status));
+            return Err(anyhow::anyhow!(
+                "API returned error status: {}",
+                parsed_response.subsonic_response.status
+            ));
         }
-        
+
         // Extract songs from response
         match parsed_response.subsonic_response.random_songs {
             Some(random_songs) => Ok(random_songs.song),
@@ -123,12 +142,12 @@ impl SubsonicClient {
     /// Get all existing playlists
     pub fn get_playlists(&self) -> Result<Vec<PlaylistInfo>> {
         let (salt, token) = self.generate_auth_params();
-        
+
         let url = format!(
             "{}/rest/getPlaylists?u={}&t={}&s={}&v=1.16.1&c=playlist-generator&f=json",
-            self.base_url, 
-            encode(&self.username), 
-            token, 
+            self.base_url,
+            encode(&self.username),
+            token,
             salt
         );
 
@@ -136,11 +155,11 @@ impl SubsonicClient {
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
-        
+
         // println!("Playlists response: {}", response_text);
 
         let parsed_response: GetPlaylistsResponse = serde_json::from_str(&response_text)?;
-        
+
         // Check if the response was successful
         if parsed_response.subsonic_response.status != "ok" {
             return Err(anyhow::anyhow!("API error: Response status was not 'ok'"));
@@ -154,16 +173,28 @@ impl SubsonicClient {
     }
 
     /// Create a new playlist or update existing one, deleting any playlists that start with the base name
-    pub fn create_playlist_with_pattern_cleanup(&self, name: &str, base_name_pattern: &str, song_ids: &[String]) -> Result<String> {
+    pub fn create_playlist_with_pattern_cleanup(
+        &self,
+        name: &str,
+        base_name_pattern: &str,
+        song_ids: &[String],
+    ) -> Result<String> {
         // First, check for existing playlists that start with the base pattern and get their ID
         if let Ok(existing_playlists) = self.get_playlists() {
-            let matching_playlists: Vec<_> = existing_playlists.iter()
-                .filter(|p| p.name.to_lowercase().starts_with(base_name_pattern.to_lowercase().as_str()))
+            let matching_playlists: Vec<_> = existing_playlists
+                .iter()
+                .filter(|p| {
+                    p.name
+                        .to_lowercase()
+                        .starts_with(base_name_pattern.to_lowercase().as_str())
+                })
                 .collect();
 
             if let Some(existing) = matching_playlists.first() {
-                println!("Found existing playlist '{}' matching pattern '{}' (ID: {})", 
-                    existing.name, base_name_pattern, existing.id);
+                println!(
+                    "Found existing playlist '{}' matching pattern '{}' (ID: {})",
+                    existing.name, base_name_pattern, existing.id
+                );
                 // Update the existing playlist with new songs
                 return self.update_playlist(&existing.id, name, song_ids);
             }
@@ -178,7 +209,10 @@ impl SubsonicClient {
         // First, check if playlist already exists and delete it
         if let Ok(existing_playlists) = self.get_playlists() {
             if let Some(existing) = existing_playlists.iter().find(|p| p.name == name) {
-                println!("Playlist '{}' already exists (ID: {}), deleting it first...", name, existing.id);
+                println!(
+                    "Playlist '{}' already exists (ID: {}), deleting it first...",
+                    name, existing.id
+                );
                 if let Err(e) = self.delete_playlist(&existing.id) {
                     println!("Warning: Failed to delete existing playlist: {}", e);
                 }
@@ -186,13 +220,13 @@ impl SubsonicClient {
         }
 
         let (salt, token) = self.generate_auth_params();
-        
+
         // Create the playlist with songs
         let mut url = format!(
             "{}/rest/createPlaylist?u={}&t={}&s={}&v=1.16.1&c=playlist-generator&f=json&name={}",
-            self.base_url, 
-            encode(&self.username), 
-            token, 
+            self.base_url,
+            encode(&self.username),
+            token,
             salt,
             encode(name)
         );
@@ -202,34 +236,46 @@ impl SubsonicClient {
             url.push_str(&format!("&songId={}", encode(song_id)));
         }
 
-        println!("Creating playlist '{}' with {} songs...", name, song_ids.len());
+        println!(
+            "Creating playlist '{}' with {} songs...",
+            name,
+            song_ids.len()
+        );
         println!("Create playlist URL: {}", url);
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
-        
+
         let parsed_response: CreatePlaylistResponse = serde_json::from_str(&response_text)?;
-        
+
         if parsed_response.subsonic_response.status != "ok" {
             return Err(anyhow::anyhow!("API error: Response status was not 'ok'"));
         }
 
         match parsed_response.subsonic_response.playlist {
             Some(playlist) => {
-                println!("✓ Successfully created playlist '{}' with ID: {}", name, playlist.id);
+                println!(
+                    "✓ Successfully created playlist '{}' with ID: {}",
+                    name, playlist.id
+                );
                 Ok(playlist.id)
-            },
+            }
             None => Err(anyhow::anyhow!("No playlist returned in create response")),
         }
     }
 
     /// Update an existing playlist with new songs
-    pub fn update_playlist(&self, playlist_id: &str, name: &str, song_ids: &[String]) -> Result<String> {
+    pub fn update_playlist(
+        &self,
+        playlist_id: &str,
+        name: &str,
+        song_ids: &[String],
+    ) -> Result<String> {
         let (salt, token) = self.generate_auth_params();
-        
+
         // Fetch current playlist songs to remove all tracks
         let get_url = format!(
-            "{}/rest/getPlaylist?u={}&t={}&s={}&v=1.16.1&c=playlist-generator&f=json&playlistId={}",
+            "{}/rest/getPlaylist?u={}&t={}&s={}&v=1.16.1&c=playlist-generator&f=json&id={}",
             self.base_url,
             encode(&self.username),
             token,
@@ -239,9 +285,10 @@ impl SubsonicClient {
         let list_resp = self.agent.get(&get_url).call()?;
         let list_text = list_resp.into_string()?;
         let list_json: serde_json::Value = serde_json::from_str(&list_text)?;
+        println!("{}", list_text);
         // Extract existing songs array
         let existing = list_json["subsonic-response"]["playlist"]
-            .get("song")
+            .get("entry")
             .and_then(|s| s.as_array())
             .cloned()
             .unwrap_or_else(Vec::new);
@@ -255,45 +302,63 @@ impl SubsonicClient {
             encode(playlist_id),
             encode(name)
         );
-    // Remove all existing tracks by index in descending order
-    for idx in (0..existing.len()).rev() {
-        url.push_str(&format!("&songIndexToRemove={}", idx));
-    }
-    // Append new songs
-    for song_id in song_ids {
-        url.push_str(&format!("&songIdToAdd={}", encode(song_id)));
-    }
-        println!("Updating playlist '{}' (ID: {}) with {} songs...", name, playlist_id, song_ids.len());
+        println!(
+            "Updating playlist '{}' (ID: {}) with {} existing songs to remove...",
+            name, playlist_id, existing.len()
+        );
+        // Remove all existing tracks by index in descending order
+        for idx in 0..existing.len() {
+            url.push_str(&format!("&songIndexToRemove={}", idx));
+        }
+        // Append new songs
+        for song_id in song_ids {
+            url.push_str(&format!("&songIdToAdd={}", encode(song_id)));
+        }
+        println!(
+            "Updating playlist '{}' (ID: {}) with {} songs...",
+            name,
+            playlist_id,
+            song_ids.len()
+        );
         println!("Update playlist URL: {}", url);
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
-        
+
         let parsed: serde_json::Value = serde_json::from_str(&response_text)?;
         if let Some(status) = parsed
             .get("subsonic-response")
             .and_then(|r| r.get("status"))
-            .and_then(|s| s.as_str()) {
+            .and_then(|s| s.as_str())
+        {
             if status == "ok" {
-                println!("✓ Successfully updated playlist '{}' (ID: {})", name, playlist_id);
+                println!(
+                    "✓ Successfully updated playlist '{}' (ID: {})",
+                    name, playlist_id
+                );
                 Ok(playlist_id.to_string())
             } else {
-                Err(anyhow::anyhow!("API error: Update playlist status was not 'ok': {}", status))
+                Err(anyhow::anyhow!(
+                    "API error: Update playlist status was not 'ok': {}",
+                    status
+                ))
             }
         } else {
-            Err(anyhow::anyhow!("Invalid response format from update playlist"))
+            Err(anyhow::anyhow!(
+                "Invalid response format from update playlist"
+            ))
         }
     }
 
     /// Delete an existing playlist
     pub fn delete_playlist(&self, playlist_id: &str) -> Result<()> {
         let (salt, token) = self.generate_auth_params();
-        
+
         let url = format!(
             "{}/rest/deletePlaylist?u={}&t={}&s={}&v=1.16.1&c=playlist-generator&f=json&id={}",
-            self.base_url, 
-            encode(&self.username), 
-            token, 
+            self.base_url,
+            encode(&self.username),
+            token,
             salt,
             encode(playlist_id)
         );
@@ -302,25 +367,29 @@ impl SubsonicClient {
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
-        
+
         // println!("Delete playlist response: {}", response_text);
 
         // For delete, we just need to check the status
         let parsed_response: serde_json::Value = serde_json::from_str(&response_text)?;
-        
+
         if let Some(status) = parsed_response
             .get("subsonic-response")
             .and_then(|r| r.get("status"))
-            .and_then(|s| s.as_str()) 
+            .and_then(|s| s.as_str())
         {
             if status == "ok" {
                 println!("✓ Successfully deleted playlist");
                 Ok(())
             } else {
-                Err(anyhow::anyhow!("API error: Delete playlist status was not 'ok'"))
+                Err(anyhow::anyhow!(
+                    "API error: Delete playlist status was not 'ok'"
+                ))
             }
         } else {
-            Err(anyhow::anyhow!("Invalid response format from delete playlist"))
+            Err(anyhow::anyhow!(
+                "Invalid response format from delete playlist"
+            ))
         }
     }
 }

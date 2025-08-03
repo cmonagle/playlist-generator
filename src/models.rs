@@ -43,8 +43,10 @@ pub struct RandomSongsResponse {
 }
 
 #[derive(Debug, Deserialize)]
+#[allow(dead_code)]
 pub struct SubsonicResponse {
     pub status: String,
+    /// allow undefined version for flexibility
     pub version: String,
     #[serde(rename = "randomSongs")]
     pub random_songs: Option<RandomSongs>,
@@ -76,15 +78,6 @@ impl Song {
         all_genres.sort();
         all_genres.dedup();
         all_genres
-    }
-    
-    /// Check if this song matches any of the given genre patterns
-    pub fn matches_genre_patterns(&self, patterns: &[&str]) -> bool {
-        let all_genres = self.get_all_genres();
-        
-        patterns.iter().any(|&pattern| {
-            all_genres.iter().any(|genre| genre.contains(pattern))
-        })
     }
     
     /// Check if this song matches any of the given genre patterns (String version)

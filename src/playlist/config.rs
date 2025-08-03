@@ -38,6 +38,9 @@ pub struct TransitionRules {
     pub max_bpm_jump: u32,
     pub preferred_bpm_change: i32,  // negative for slowdown, positive for speedup
     pub avoid_artist_repeats_within: usize,  // number of songs
+    // pub bpm_weight: f32,                     // Weight for BPM transition scoring (0.0 to 1.0)
+    // pub artist_weight: f32,                  // Weight for artist repetition penalty (0.0 to 1.0)
+    // pub genre_weight: f32,                   // Weight for genre compatibility scoring (0.0 to 1.0)
 }
 
 /// Weights for preference scoring (0.0 to 1.0)
@@ -54,6 +57,25 @@ pub struct PreferenceWeights {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PlaylistConfigs {
     pub playlists: Vec<PlaylistConfig>,
+}
+
+/// Settings for iterative playlist generation with quality evaluation
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct IterativeSettings {
+    pub min_quality_threshold: f32,      // Minimum quality score to accept a song
+    pub max_attempts_per_position: usize, // Maximum attempts before settling for best candidate
+    #[serde(default)]
+    pub debug_output: bool,              // Enable debug output for artist repetition checking
+}
+
+impl Default for IterativeSettings {
+    fn default() -> Self {
+        Self {
+            min_quality_threshold: 0.3,
+            max_attempts_per_position: 10,
+            debug_output: true,
+        }
+    }
 }
 
 impl Default for PlaylistConfig {
@@ -74,6 +96,9 @@ impl Default for PlaylistConfig {
                 max_bpm_jump: 20,
                 preferred_bpm_change: 0,  // neutral by default
                 avoid_artist_repeats_within: 3,
+                // bpm_weight: 0.4,
+                // artist_weight: 0.4,
+                // genre_weight: 0.2,
             },
             preference_weights: PreferenceWeights {
                 starred_boost: 100.0,

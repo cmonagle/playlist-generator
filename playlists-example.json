@@ -52,7 +52,7 @@
     },
     "transition_rules": {
       "max_bpm_jump": 18,
-      "preferred_bmp_change": 3,
+      "preferred_bpm_change": 3,
       "avoid_artist_repeats_within": 3
     },
     "preference_weights": {

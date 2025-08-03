@@ -36,7 +36,7 @@ impl PlaylistScoring {
         if let Some(played_str) = &song.played {
             if let Ok(days_since_played) = Self::parse_days_since_played(played_str) {
                 // Apply recency penalty - songs played recently get lower scores
-                if days_since_played < 7.0 { // Use 7 days as default
+                if days_since_played < 14.0 { // Use 7 days as default
                     let penalty_factor = 1.0 - (days_since_played / 7.0);
                     score -= weights.recency_penalty_weight * penalty_factor;
                 }

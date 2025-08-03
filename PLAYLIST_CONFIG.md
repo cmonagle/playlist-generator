@@ -204,10 +204,10 @@ Adjust your weights and genres based on the results until you get playlists that
    - Songs must NOT match any `unacceptable_genres` (if specified)
    - If a song matches both acceptable and unacceptable genres, it will be excluded
    - Use `unacceptable_genres` to fine-tune playlists by removing unwanted sub-genres
-3. **Preference Weights**: Think about what you want, not what's "good" or "bad"
+3. **Preference Weights**:
    - Discovery playlist: Low genre_coherence (0.1-0.3) for variety
    - Workout playlist: Low bpm_transition_smoothness (0.2-0.4) for energy changes
-   - Study playlist: High genre_coherence (0.8-1.0) and bmp_transition_smoothness (0.8-1.0)
+   - Study playlist: High genre_coherence (0.8-1.0) and bpm_transition_smoothness (0.8-1.0)
 4. **Discovery Mode**: Great for finding new music but can feel random
 5. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
 6. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferencesJSON object with the following structure:

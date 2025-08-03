@@ -101,6 +101,7 @@ mod tests {
         let discovery_config = PlaylistConfig {
             name: "Discovery Test".to_string(),
             acceptable_genres: None,
+            unacceptable_genres: None,
             bpm_thresholds: None,
             quality_weights: QualityWeights {
                 artist_diversity: 0.5,
