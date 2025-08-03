@@ -242,24 +242,26 @@ impl PlaylistGenerator {
         );
 
         // Check if candidate artist appears in recent songs
-        for (i, recent_song) in recent_songs.iter().enumerate() {
-            println!(
-                "      Position {}: '{}' == '{}' ? {}",
-                current_playlist.len() - check_count + i + 1,
-                recent_song.artist,
-                candidate.artist,
-                recent_song.artist == candidate.artist
-            );
+        for (index, recent_song) in recent_songs.iter().enumerate() {
+            // println!(
+            //     "      Position {}: '{}' == '{}' ? {}",
+            //     current_playlist.len() - check_count + i + 1,
+            //     recent_song.artist,
+            //     candidate.artist,
+            //     recent_song.artist == candidate.artist
+            // );
 
             if recent_song.artist == candidate.artist {
                 // Artist repetition found - return strong penalty based on how recent
-                let recency_factor = (check_count - i) as f32 / check_count as f32;
-                // Give a very low score for repetition: most recent gets 0.0, older gets up to 0.2
-                let penalty = 0.5 * (1.0 - recency_factor); // Range: 0.0 to 0.5
+                // index 0 = oldest in recent_songs, index (check_count-1) = newest
+                // Higher index = more recent = lower score (higher penalty)
+                let recency_factor = (index + 1) as f32 / check_count as f32; // Range: 1/check_count to 1.0
+                // Convert to penalty: more recent (higher recency_factor) = lower score
+                let penalty = 0.5 * (1.0 - recency_factor); // Range: 0.0 (most recent) to ~0.5 (oldest)
 
                 println!(
-                    "      ARTIST REPETITION PENALTY: {} (recency: {})",
-                    penalty, recency_factor
+                    "      ARTIST REPETITION PENALTY: {} matches {} at recent position {}: Score {} (recency: {})",
+                    recent_song.artist, candidate.artist, index, penalty, recency_factor
                 );
 
                 return penalty;
