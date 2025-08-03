@@ -154,15 +154,11 @@ mod tests {
 
         assert!(
             unplayed_discovery_score > low_discovery_score,
-            "Unplayed song should score higher than low played song in discovery mode. Unplayed: {}, Low: {}",
-            unplayed_discovery_score,
-            low_discovery_score
+            "Unplayed song should score higher than low played song in discovery mode. Unplayed: {unplayed_discovery_score}, Low: {low_discovery_score}"
         );
         assert!(
             low_discovery_score > high_discovery_score,
-            "Low played song should score higher than high played song in discovery mode. Low: {}, High: {}",
-            low_discovery_score,
-            high_discovery_score
+            "Low played song should score higher than high played song in discovery mode. Low: {low_discovery_score}, High: {high_discovery_score}"
         );
 
         // Test normal mode - higher play counts should score higher
@@ -175,15 +171,11 @@ mod tests {
 
         assert!(
             high_normal_score > low_normal_score,
-            "High played song should score higher than low played song in normal mode. High: {}, Low: {}",
-            high_normal_score,
-            low_normal_score
+            "High played song should score higher than low played song in normal mode. High: {high_normal_score}, Low: {low_normal_score}"
         );
         assert!(
             low_normal_score > unplayed_normal_score,
-            "Low played song should score higher than unplayed song in normal mode. Low: {}, Unplayed: {}",
-            low_normal_score,
-            unplayed_normal_score
+            "Low played song should score higher than unplayed song in normal mode. Low: {low_normal_score}, Unplayed: {unplayed_normal_score}"
         );
     }
 }

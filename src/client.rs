@@ -151,7 +151,7 @@ impl SubsonicClient {
             salt
         );
 
-        println!("Getting playlists from: {}", url);
+        println!("Getting playlists from: {url}");
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
@@ -214,7 +214,7 @@ impl SubsonicClient {
                     name, existing.id
                 );
                 if let Err(e) = self.delete_playlist(&existing.id) {
-                    println!("Warning: Failed to delete existing playlist: {}", e);
+                    println!("Warning: Failed to delete existing playlist: {e}");
                 }
             }
         }
@@ -241,7 +241,7 @@ impl SubsonicClient {
             name,
             song_ids.len()
         );
-        println!("Create playlist URL: {}", url);
+        println!("Create playlist URL: {url}");
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
@@ -285,7 +285,7 @@ impl SubsonicClient {
         let list_resp = self.agent.get(&get_url).call()?;
         let list_text = list_resp.into_string()?;
         let list_json: serde_json::Value = serde_json::from_str(&list_text)?;
-        println!("{}", list_text);
+        println!("{list_text}");
         // Extract existing songs array
         let existing = list_json["subsonic-response"]["playlist"]
             .get("entry")
@@ -310,7 +310,7 @@ impl SubsonicClient {
         );
         // Remove all existing tracks by index in descending order
         for idx in 0..existing.len() {
-            url.push_str(&format!("&songIndexToRemove={}", idx));
+            url.push_str(&format!("&songIndexToRemove={idx}"));
         }
         // Append new songs
         for song_id in song_ids {
@@ -322,7 +322,7 @@ impl SubsonicClient {
             playlist_id,
             song_ids.len()
         );
-        println!("Update playlist URL: {}", url);
+        println!("Update playlist URL: {url}");
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;
@@ -335,8 +335,7 @@ impl SubsonicClient {
         {
             if status == "ok" {
                 println!(
-                    "✓ Successfully updated playlist '{}' (ID: {})",
-                    name, playlist_id
+                    "✓ Successfully updated playlist '{name}' (ID: {playlist_id})"
                 );
                 Ok(playlist_id.to_string())
             } else {
@@ -365,7 +364,7 @@ impl SubsonicClient {
             encode(playlist_id)
         );
 
-        println!("Deleting playlist ID: {}", playlist_id);
+        println!("Deleting playlist ID: {playlist_id}");
 
         let response = self.agent.get(&url).call()?;
         let response_text = response.into_string()?;

@@ -70,13 +70,13 @@ impl SongFilters {
         let contains_non_song_pattern = non_song_patterns.iter().any(|pattern| {
             // Check if the pattern appears as a whole word at the beginning, end, or surrounded by spaces
             title_lower == *pattern ||
-                title_lower.starts_with(&format!("{} ", pattern)) ||
-                title_lower.ends_with(&format!(" {}", pattern)) ||
-                title_lower.contains(&format!(" {} ", pattern)) ||
+                title_lower.starts_with(&format!("{pattern} ")) ||
+                title_lower.ends_with(&format!(" {pattern}")) ||
+                title_lower.contains(&format!(" {pattern} ")) ||
                 // Also check for patterns that are the entire title or standalone words
                 title_lower.split_whitespace().any(|word| word == *pattern) ||
                 // Check for patterns followed by colon (like "Interlude: Title")
-                title_lower.starts_with(&format!("{}:", pattern))
+                title_lower.starts_with(&format!("{pattern}:"))
         });
 
         // Additional heuristics

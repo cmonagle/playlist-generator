@@ -59,7 +59,7 @@ fn main() -> Result<()> {
     match client.ping() {
         Ok(_) => println!("✓ API connection successful"),
         Err(e) => {
-            eprintln!("✗ API connection failed: {}", e);
+            eprintln!("✗ API connection failed: {e}");
             return Err(e);
         }
     }
@@ -109,7 +109,7 @@ fn main() -> Result<()> {
             configs
         }
         Err(e) => {
-            eprintln!("Failed to load playlist configurations: {}", e);
+            eprintln!("Failed to load playlist configurations: {e}");
             return Err(anyhow::anyhow!(
                 "Failed to load playlist configurations: {}",
                 e
@@ -127,8 +127,7 @@ fn main() -> Result<()> {
     let filtered_out_count = original_count - actual_songs.len();
     if filtered_out_count > 0 {
         println!(
-            "Filtered out {} non-songs (interludes, sketches, etc.)",
-            filtered_out_count
+            "Filtered out {filtered_out_count} non-songs (interludes, sketches, etc.)"
         );
     }
     println!(
@@ -190,9 +189,9 @@ fn main() -> Result<()> {
 
         if let (Some(min_year), Some(max_year)) = playlist.metadata.era_span {
             if min_year == max_year {
-                println!("   Era: {}", min_year);
+                println!("   Era: {min_year}");
             } else {
-                println!("   Era: {} - {}", min_year, max_year);
+                println!("   Era: {min_year} - {max_year}");
             }
         }
 
@@ -203,7 +202,7 @@ fn main() -> Result<()> {
             let top_3: Vec<String> = top_genres
                 .iter()
                 .take(3)
-                .map(|(genre, count)| format!("{} ({})", genre, count))
+                .map(|(genre, count)| format!("{genre} ({count})"))
                 .collect();
             println!("   Top Genres: {}", top_3.join(", "));
         }
@@ -240,7 +239,7 @@ fn main() -> Result<()> {
                 let starred_indicator = if song.starred.is_some() { " ★" } else { "" };
                 let play_count_display = song
                     .play_count
-                    .map(|pc| format!(" ({}x played)", pc))
+                    .map(|pc| format!(" ({pc}x played)"))
                     .unwrap_or_default();
 
                 println!(
@@ -254,13 +253,13 @@ fn main() -> Result<()> {
 
                 // Add transition score and selection reason to debug output
                 let transition_info = if let Some(score) = playlist_song.transition_score {
-                    format!(" | Transition: {:.2}", score)
+                    format!(" | Transition: {score:.2}")
                 } else {
                     String::new()
                 };
 
                 let quality_info = if let Some(contrib) = playlist_song.quality_contribution {
-                    format!(" | Quality Δ: {:.2}", contrib)
+                    format!(" | Quality Δ: {contrib:.2}")
                 } else {
                     String::new()
                 };
@@ -281,16 +280,16 @@ fn main() -> Result<()> {
                 // Show year and additional metadata if available
                 let mut extra_info = Vec::new();
                 if let Some(year) = song.year {
-                    extra_info.push(format!("Year: {}", year));
+                    extra_info.push(format!("Year: {year}"));
                 }
                 if let Some(track) = song.track {
-                    extra_info.push(format!("Track: {}", track));
+                    extra_info.push(format!("Track: {track}"));
                 }
                 if let Some(bit_rate) = song.bit_rate {
-                    extra_info.push(format!("{}kbps", bit_rate));
+                    extra_info.push(format!("{bit_rate}kbps"));
                 }
                 if let Some(played) = &song.played {
-                    extra_info.push(format!("Last played: {}", played));
+                    extra_info.push(format!("Last played: {played}"));
                 }
 
                 if !extra_info.is_empty() {
@@ -324,12 +323,12 @@ fn main() -> Result<()> {
                     creation_results.push((
                         playlist.name.clone(),
                         true,
-                        format!("Created with ID: {}", playlist_id),
+                        format!("Created with ID: {playlist_id}"),
                     ));
                 }
                 Err(e) => {
                     eprintln!("✗ Failed to create playlist '{}': {}", playlist.name, e);
-                    creation_results.push((playlist.name.clone(), false, format!("Error: {}", e)));
+                    creation_results.push((playlist.name.clone(), false, format!("Error: {e}")));
                 }
             }
         }
@@ -344,21 +343,19 @@ fn main() -> Result<()> {
     let total_attempts = creation_results.len();
 
     println!(
-        "Successfully created {}/{} playlists",
-        successful_creations, total_attempts
+        "Successfully created {successful_creations}/{total_attempts} playlists"
     );
 
     for (name, success, message) in &creation_results {
         let status = if *success { "✓" } else { "✗" };
-        println!("{} {}: {}", status, name, message);
+        println!("{status} {name}: {message}");
     }
 
     if successful_creations == total_attempts && total_attempts > 0 {
         println!("\n🎉 All playlists created successfully! Daily playlist generation complete.");
     } else if successful_creations > 0 {
         println!(
-            "\n⚠️ Partial success: {}/{} playlists created.",
-            successful_creations, total_attempts
+            "\n⚠️ Partial success: {successful_creations}/{total_attempts} playlists created."
         );
     } else {
         println!("\n❌ No playlists were created successfully.");
