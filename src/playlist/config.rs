@@ -11,6 +11,7 @@ pub struct PlaylistConfig {
     pub transition_rules: TransitionRules,
     pub preference_weights: PreferenceWeights,
     pub target_length: Option<usize>, // Default target length for this playlist type
+    pub min_days_since_last_play: Option<u32>, // Minimum days since last play for a song to be included
 }
 
 /// BPM range for playlist filtering
@@ -25,11 +26,11 @@ pub struct BpmThresholds {
 /// 0.0 = minimize this characteristic, 1.0 = maximize this characteristic
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QualityWeights {
-    pub artist_diversity: f32, // 0.0 = prefer same artists, 1.0 = prefer different artists
+    pub artist_diversity: f32,       // 0.0 = allow same artists, 1.0 = prefer different artists
     pub bpm_transition_smoothness: f32, // 0.0 = allow big BPM jumps, 1.0 = prefer smooth transitions
-    pub genre_coherence: f32, // 0.0 = prefer genre variety, 1.0 = prefer genre consistency
-    pub popularity_balance: f32, // 0.0 = allow extreme popularity differences, 1.0 = prefer balanced mix
-    pub era_cohesion: f32,       // 0.0 = prefer era variety, 1.0 = prefer same time period
+    pub genre_coherence: f32,        // 0.0 = prefer genre variety, 1.0 = prefer genre consistency
+    pub popularity_balance: f32,     // 0.0 = allow extreme popularity differences, 1.0 = prefer balanced mix
+    pub era_cohesion: f32,          // 0.0 = prefer era variety, 1.0 = prefer same time period
 }
 
 /// Rules for transitions between songs
@@ -38,9 +39,7 @@ pub struct TransitionRules {
     pub max_bpm_jump: u32,
     pub preferred_bpm_change: i32, // negative for slowdown, positive for speedup
     pub avoid_artist_repeats_within: usize, // number of songs
-                                   // pub bpm_weight: f32,                     // Weight for BPM transition scoring (0.0 to 1.0)
-                                   // pub artist_weight: f32,                  // Weight for artist repetition penalty (0.0 to 1.0)
-                                   // pub genre_weight: f32,                   // Weight for genre compatibility scoring (0.0 to 1.0)
+    pub avoid_album_repeats_within: usize, // number of songs
 }
 
 /// Weights for preference scoring (0.0 to 1.0)
@@ -86,8 +85,8 @@ impl Default for PlaylistConfig {
             unacceptable_genres: None,
             bpm_thresholds: None,
             quality_weights: QualityWeights {
-                artist_diversity: 0.30,
-                bpm_transition_smoothness: 0.25,
+                artist_diversity: 0.25,
+                bpm_transition_smoothness: 0.15,
                 genre_coherence: 0.20,
                 popularity_balance: 0.25,
                 era_cohesion: 0.20,
@@ -96,9 +95,7 @@ impl Default for PlaylistConfig {
                 max_bpm_jump: 20,
                 preferred_bpm_change: 0, // neutral by default
                 avoid_artist_repeats_within: 3,
-                // bpm_weight: 0.4,
-                // artist_weight: 0.4,
-                // genre_weight: 0.2,
+                avoid_album_repeats_within: 5, // Allow more spacing for album repeats
             },
             preference_weights: PreferenceWeights {
                 starred_boost: 100.0,
@@ -108,6 +105,7 @@ impl Default for PlaylistConfig {
                 discovery_mode: false,
             },
             target_length: Some(20),
+            min_days_since_last_play: None, // Default to no minimum day restriction
         }
     }
 }

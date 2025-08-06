@@ -114,6 +114,7 @@ mod tests {
                 max_bpm_jump: 30,
                 preferred_bpm_change: 0,
                 avoid_artist_repeats_within: 3,
+                avoid_album_repeats_within: 5,
             },
             preference_weights: PreferenceWeights {
                 starred_boost: 0.0,

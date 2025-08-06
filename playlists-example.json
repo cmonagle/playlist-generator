@@ -21,7 +21,8 @@
     "transition_rules": {
       "max_bpm_jump": 12,
       "preferred_bpm_change": -1,
-      "avoid_artist_repeats_within": 6
+      "avoid_artist_repeats_within": 6,
+      "avoid_album_repeats_within": 8
     },
     "preference_weights": {
       "starred_boost": 40.0,
@@ -53,7 +54,8 @@
     "transition_rules": {
       "max_bpm_jump": 18,
       "preferred_bpm_change": 3,
-      "avoid_artist_repeats_within": 3
+      "avoid_artist_repeats_within": 3,
+      "avoid_album_repeats_within": 4
     },
     "preference_weights": {
       "starred_boost": 80.0,
@@ -85,7 +87,8 @@
     "transition_rules": {
       "max_bpm_jump": 35,
       "preferred_bpm_change": 0,
-      "avoid_artist_repeats_within": 8
+      "avoid_artist_repeats_within": 8,
+      "avoid_album_repeats_within": 10
     },
     "preference_weights": {
       "starred_boost": 20.0,
@@ -116,7 +119,8 @@
     "transition_rules": {
       "max_bpm_jump": 8,
       "preferred_bpm_change": -3,
-      "avoid_artist_repeats_within": 4
+      "avoid_artist_repeats_within": 4,
+      "avoid_album_repeats_within": 6
     },
     "preference_weights": {
       "starred_boost": 30.0,

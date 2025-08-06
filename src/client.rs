@@ -285,7 +285,6 @@ impl SubsonicClient {
         let list_resp = self.agent.get(&get_url).call()?;
         let list_text = list_resp.into_string()?;
         let list_json: serde_json::Value = serde_json::from_str(&list_text)?;
-        println!("{list_text}");
         // Extract existing songs array
         let existing = list_json["subsonic-response"]["playlist"]
             .get("entry")

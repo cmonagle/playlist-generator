@@ -157,28 +157,23 @@ impl PlaylistScoring {
             return 0.0;
         }
 
-        let artist_diversity_score = (metadata.artist_count as f32 / songs.len() as f32).min(1.0);
-
-        // Calculate genre coherence based on distribution balance
-        let genre_coherence_score =
-            Self::calculate_genre_coherence_score(&metadata.genre_distribution, songs.len());
-
-        // Calculate era cohesion (how well the years fit together)
-        let era_cohesion_score = Self::calculate_era_cohesion_score(&metadata.era_span);
-
-        // Calculate popularity balance (avoid too many popular or unpopular songs)
-        let popularity_balance_score = Self::calculate_popularity_balance_score(songs);
-
-        // Calculate BPM transition smoothness
-        let bpm_transition_score = Self::calculate_bpm_transition_score(songs);
-
-        // Weighted average
+        // Calculate core quality metrics with their weights
         let weights = &config.quality_weights;
-        weights.artist_diversity * artist_diversity_score
-            + weights.bpm_transition_smoothness * bpm_transition_score
-            + weights.genre_coherence * genre_coherence_score
-            + weights.popularity_balance * popularity_balance_score
-            + weights.era_cohesion * era_cohesion_score
+        let genre_coherence_score = Self::calculate_genre_coherence_score(&metadata.genre_distribution, songs.len()) * weights.genre_coherence;
+        let era_cohesion_score = Self::calculate_era_cohesion_score(&metadata.era_span) * weights.era_cohesion;
+        let popularity_balance_score = Self::calculate_popularity_balance_score(songs) * weights.popularity_balance;
+        let artist_diversity_score = Self::calculate_artist_diversity_score(songs) * weights.artist_diversity;
+        let bpm_smoothness_score = Self::calculate_bpm_transition_smoothness_score(songs) * weights.bpm_transition_smoothness;
+
+        // Sum weighted scores and normalize by total weight sum
+        let total_score = genre_coherence_score + popularity_balance_score + era_cohesion_score + artist_diversity_score + bpm_smoothness_score;
+        let total_weight = weights.genre_coherence + weights.popularity_balance + weights.era_cohesion + weights.artist_diversity + weights.bpm_transition_smoothness;
+        
+        if total_weight > 0.0 {
+            total_score / total_weight
+        } else {
+            0.5 // Neutral score if no weights are set
+        }
     }
 
     /// Calculate genre coherence preference score based on distribution
@@ -290,36 +285,52 @@ impl PlaylistScoring {
         }
     }
 
-    /// Calculate BPM transition smoothness preference score
-    pub fn calculate_bpm_transition_score(songs: &[Song]) -> f32 {
-        let bpms: Vec<u32> = songs.iter().filter_map(|s| s.bpm).collect();
-
-        if bpms.len() < 2 {
-            return 0.5; // Neutral when can't measure transitions
+    /// Calculate artist diversity score
+    pub fn calculate_artist_diversity_score(songs: &[Song]) -> f32 {
+        if songs.len() <= 1 {
+            return 1.0; // Single song = maximum "diversity" (no repetition possible)
         }
 
-        // Calculate average BPM difference between adjacent songs
-        let mut total_smoothness_score = 0.0;
-        let mut transition_count = 0;
+        let total_songs = songs.len();
+        let unique_artists = songs
+            .iter()
+            .map(|s| &s.artist)
+            .collect::<std::collections::HashSet<_>>()
+            .len();
 
-        for i in 0..bpms.len() - 1 {
-            let diff = (bpms[i + 1] as i32 - bpms[i] as i32).unsigned_abs();
-
-            // Calculate smoothness: 1.0 = very smooth, 0.0 = very jarring
-            let smoothness = if diff <= 5 {
-                1.0 // Very smooth transition
-            } else if diff <= 15 {
-                1.0 - (diff - 5) as f32 / 10.0 * 0.3 // Score 0.7-1.0
-            } else if diff <= 30 {
-                0.7 - (diff - 15) as f32 / 15.0 * 0.4 // Score 0.3-0.7
-            } else {
-                (0.3 - (diff - 30) as f32 / 70.0 * 0.3).max(0.0) // Score 0.0-0.3
-            };
-
-            total_smoothness_score += smoothness;
-            transition_count += 1;
-        }
-
-        total_smoothness_score / transition_count as f32
+        // Return diversity score: 1.0 = all different artists, 0.0 = all same artist
+        unique_artists as f32 / total_songs as f32
     }
+
+    /// Calculate BPM transition smoothness score
+    pub fn calculate_bpm_transition_smoothness_score(songs: &[Song]) -> f32 {
+        if songs.len() <= 1 {
+            return 1.0; // Single song = maximum smoothness (no transitions)
+        }
+
+        let bpm_transitions: Vec<u32> = songs
+            .windows(2)
+            .filter_map(|pair| {
+                if let (Some(bpm1), Some(bpm2)) = (pair[0].bpm, pair[1].bpm) {
+                    Some((bpm1 as i32 - bpm2 as i32).abs() as u32)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        if bpm_transitions.is_empty() {
+            return 0.5; // Neutral when no BPM data available
+        }
+
+        // Calculate average BPM jump
+        let avg_jump = bpm_transitions.iter().sum::<u32>() as f32 / bpm_transitions.len() as f32;
+
+        // Return smoothness score: 1.0 = very smooth (small jumps), 0.0 = very jarring (large jumps)
+        // Use a reasonable scale where 30 BPM jump = 0.5 score
+        let smoothness = (60.0 - avg_jump) / 60.0;
+        smoothness.clamp(0.0_f32, 1.0_f32)
+    }
+
+
 }

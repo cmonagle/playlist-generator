@@ -1,5 +1,6 @@
 use super::filters::SongFilters;
 use super::scoring::PlaylistScoring;
+use super::transitions::PlaylistTransitions;
 use super::{Playlist, PlaylistConfig, PlaylistSong};
 use crate::models::Song;
 use crate::playlist::utils::PlaylistNaming;
@@ -67,8 +68,8 @@ impl PlaylistGenerator {
         target_length: usize,
     ) -> Vec<PlaylistSong> {
         let mut playlist: Vec<PlaylistSong> = Vec::new();
-        let mut remaining_songs = candidate_songs;
-
+        let mut remaining_songs = candidate_songs; // Keep persistent list of remaining songs
+        
         while playlist.len() < target_length && !remaining_songs.is_empty() {
             let mut best_candidate_index: Option<usize> = None;
             let mut best_quality_score = 0.0;
@@ -90,15 +91,36 @@ impl PlaylistGenerator {
 
             // Try candidates in order of preference score (already sorted)
             for (i, candidate) in remaining_songs.iter().enumerate() {
-                if i >= 10 {
-                    break; // Could make this smarter - maybe continue if we haven't found ANY viable candidate
+                // Hard constraint: Skip candidates that would violate artist repetition rules
+                if self.would_violate_artist_repetition(&current_playlist_songs, candidate) {
+                    // println!(
+                    //     "      SKIPPING '{}' by {} due to artist repetition constraint",
+                    //     candidate.title, candidate.artist
+                    // );
+                    continue;
                 }
 
-                // Hard constraint: Skip candidates that would violate artist repetition rules
-                let artist_score = self.calculate_artist_repetition_score(&current_playlist_songs, candidate);
-                if artist_score < 0.3 {
-                    println!("      SKIPPING '{}' by {} due to artist repetition constraint (score: {})", 
-                             candidate.title, candidate.artist, artist_score);
+                // Hard constraint: Skip candidates that would violate album repetition rules
+                if self.would_violate_album_repetition(&current_playlist_songs, candidate) {
+                    // println!(
+                    //     "      SKIPPING '{}' from album '{}' due to album repetition constraint",
+                    //     candidate.title, candidate.album
+                    // );
+                    continue;
+                }
+
+                // BPM transition constraint: Use configured max_bpm_jump as hard constraint
+                if let Some(last_song) = current_playlist_songs.last() {
+                    if let (Some(bpm_a), Some(bpm_b)) = (last_song.bpm, candidate.bpm) {
+                        let bpm_diff = (bpm_a as i32 - bpm_b as i32).abs() as u32;
+                        if bpm_diff > self.config.transition_rules.max_bpm_jump {
+                            continue;
+                        }
+                    }
+                }
+
+                // Hard constraint: Skip candidates that would violate minimum days since last play
+                if self.would_violate_min_days_since_last_play(candidate) {
                     continue;
                 }
 
@@ -122,57 +144,70 @@ impl PlaylistGenerator {
                 // Use configurable quality vs transition weighting (70/30 split for now)
                 let combined_score = test_quality * 0.7 + transition_score * 0.3;
 
-                // Apply quality criteria based on configurable thresholds
-                let quality_improvement = test_quality - current_quality;
-                let acceptable_quality = test_quality >= 0.5;
+                // Always consider the candidate - just pick the best one available
+                let should_accept = best_candidate_index.is_none() || combined_score > best_quality_score;
 
-                // Consider different strategies for different playlist types
-                let should_accept = if current_playlist_songs.is_empty() {
-                    // Always accept the first song if it meets minimum threshold
-                    acceptable_quality
-                } else {
-                    // For subsequent songs, require improvement or at least no significant degradation
-                    acceptable_quality
-                        && (quality_improvement >= -0.1 || combined_score > best_quality_score)
-                };
-
-                if should_accept && combined_score > best_quality_score {
+                if should_accept {
                     best_candidate_index = Some(i);
                     best_quality_score = combined_score;
                     best_transition_score = transition_score;
                 }
             }
 
-            // Add the best candidate we found, or fallback to first available
-            match best_candidate_index {
-                Some(index) => {
-                    let chosen_song = remaining_songs.remove(index);
-                    let quality_contribution = best_quality_score - current_quality;
-                    // Since we're building iteratively, just append to the end
-                    playlist.push(PlaylistSong::with_metadata(
-                        chosen_song,
-                        best_transition_score,
-                        quality_contribution,
-                        "best candidate".to_string(),
-                    ));
-                }
-                None => {
-                    // Implement fallback strategy - take the highest-scored remaining song
-                    if !remaining_songs.is_empty() {
-                        // Fallback: take the highest-scored remaining song
-                        let fallback_song = remaining_songs.remove(0);
-                        playlist.push(PlaylistSong::with_metadata(
-                            fallback_song,
-                            0.0, // No transition score calculated for fallback
-                            0.0, // No quality contribution calculated for fallback
-                            "fallback".to_string(),
-                        ));
-                    }
-                }
+            // Add the best candidate we found
+            if let Some(index) = best_candidate_index {
+                let chosen_song = remaining_songs.remove(index);
+                let quality_contribution = best_quality_score - current_quality;
+                // Since we're building iteratively, just append to the end
+                playlist.push(PlaylistSong::with_metadata(
+                    chosen_song,
+                    best_transition_score,
+                    quality_contribution,
+                ));
+            } else {
+                // No valid candidates found (all were filtered out by constraints)
+                break;
             }
         }
 
+        // Log summary of playlist generation
+        if !playlist.is_empty() {
+            println!(
+                "Generated {} songs for '{}' (target: {})",
+                playlist.len(),
+                self.config.name,
+                target_length
+            );
+        }
+
         playlist
+    }
+
+    /// Check if a candidate would violate artist repetition rules
+    fn would_violate_artist_repetition(&self, current_playlist: &[Song], candidate: &Song) -> bool {
+        PlaylistTransitions::would_violate_artist_repetition(
+            self.config.transition_rules.avoid_artist_repeats_within,
+            current_playlist,
+            candidate,
+        )
+    }
+
+    /// Check if a candidate would violate album repetition rules
+    fn would_violate_album_repetition(&self, current_playlist: &[Song], candidate: &Song) -> bool {
+        PlaylistTransitions::would_violate_album_repetition(
+            self.config.transition_rules.avoid_album_repeats_within,
+            current_playlist,
+            candidate,
+        )
+    }
+
+    /// Check if a candidate would violate the minimum days since last play rule
+    fn would_violate_min_days_since_last_play(&self, candidate: &Song) -> bool {
+        if let Some(min_days) = self.config.min_days_since_last_play {
+            PlaylistTransitions::would_violate_min_days_since_last_play(min_days, candidate)
+        } else {
+            false // No rule to enforce if min_days_since_last_play is not set
+        }
     }
 
     /// Calculate how well a candidate song would fit with the current working playlist
@@ -181,153 +216,6 @@ impl PlaylistGenerator {
         current_playlist: &[Song],
         candidate: &Song,
     ) -> f32 {
-        if current_playlist.is_empty() {
-            return 0.5; // Neutral score for first song
-        }
-
-        let mut total_score = 0.0_f32;
-
-        // 1. BPM transition - only check against the last song
-        if let Some(last_song) = current_playlist.last() {
-            let bpm_score = self.calculate_bpm_transition_score(last_song, candidate);
-            total_score += bpm_score * 0.25;
-        }
-
-        // 2. Artist repetition - check against recent songs based on avoid_artist_repeats_within
-        // Give this much higher weight since it's a hard constraint we want to enforce
-        let artist_score = self.calculate_artist_repetition_score(current_playlist, candidate);
-        total_score += artist_score * 0.6; // Increased from 0.33 to 0.6
-
-        // 3. Genre compatibility - check against the overall playlist genre distribution
-        let genre_score = self.calculate_genre_compatibility_score(current_playlist, candidate);
-        total_score += genre_score * 0.15; // Reduced from 0.33 to 0.15
-
-        // Return the weighted sum (should be between 0.0 and 1.0 if weights sum to 1.0)
-        total_score
-    }
-
-    /// Calculate BPM transition score between two songs
-    fn calculate_bpm_transition_score(&self, song_a: &Song, song_b: &Song) -> f32 {
-        if let (Some(bpm_a), Some(bpm_b)) = (song_a.bpm, song_b.bpm) {
-            let bpm_diff = (bpm_a as i32 - bpm_b as i32).unsigned_abs();
-
-            // Use transition rules from config
-            let max_jump = self.config.transition_rules.max_bpm_jump;
-
-            if bpm_diff <= 5 {
-                1.0 // Very smooth transition
-            } else if bpm_diff <= 15 {
-                0.8 // Good transition
-            } else if bpm_diff <= max_jump {
-                0.5 // Acceptable transition
-            } else {
-                0.2 // Poor transition but not completely unacceptable
-            }
-        } else {
-            0.5 // Neutral when BPM data is missing
-        }
-    }
-
-    /// Calculate artist repetition penalty based on recent songs
-    fn calculate_artist_repetition_score(
-        &self,
-        current_playlist: &[Song],
-        candidate: &Song,
-    ) -> f32 {
-        let avoid_within = self.config.transition_rules.avoid_artist_repeats_within;
-
-        // Check the last N songs (where N = avoid_artist_repeats_within)
-        let check_count = avoid_within.min(current_playlist.len());
-        let recent_songs = &current_playlist[current_playlist.len() - check_count..];
-
-        // Debug output
-        println!(
-            "    Artist repetition check for '{}' against {} recent songs:",
-            candidate.artist, check_count
-        );
-
-        // Check if candidate artist appears in recent songs
-        for (index, recent_song) in recent_songs.iter().enumerate() {
-            println!(
-                "      Position {}: '{}' == '{}' ? {}",
-                current_playlist.len() - check_count + index + 1,
-                recent_song.artist,
-                candidate.artist,
-                recent_song.artist == candidate.artist
-            );
-
-            if recent_song.artist == candidate.artist {
-                // Artist repetition found - return much stronger penalty based on how recent
-                // index 0 = oldest in recent_songs, index (check_count-1) = newest
-                // Higher index = more recent = lower score (higher penalty)
-                let recency_factor = (index + 1) as f32 / check_count as f32; // Range: 1/check_count to 1.0
-                // Convert to penalty: more recent (higher recency_factor) = much lower score
-                // Use a much stronger penalty - 0.0 for most recent, up to 0.2 for oldest
-                let penalty = 0.2 * (1.0 - recency_factor); // Range: 0.0 (most recent) to ~0.2 (oldest)
-
-                println!(
-                    "      ARTIST REPETITION PENALTY: {} matches {} at recent position {}: Score {} (recency: {})",
-                    recent_song.artist, candidate.artist, index, penalty, recency_factor
-                );
-
-                return penalty;
-            }
-        }
-
-        println!("      No artist repetition found - full score");
-
-        1.0 // No artist repetition found - full score
-    }
-
-    /// Calculate genre compatibility with the playlist's overall genre profile
-    fn calculate_genre_compatibility_score(
-        &self,
-        current_playlist: &[Song],
-        candidate: &Song,
-    ) -> f32 {
-        if current_playlist.is_empty() {
-            return 0.5;
-        }
-
-        // Get candidate genres
-        let candidate_genres = candidate.get_all_genres();
-        if candidate_genres.is_empty() {
-            return 0.5; // Neutral when no genre info
-        }
-
-        // Build genre frequency map from current playlist
-        let mut playlist_genres = std::collections::HashMap::new();
-        for song in current_playlist {
-            for genre in song.get_all_genres() {
-                *playlist_genres.entry(genre.to_lowercase()).or_insert(0) += 1;
-            }
-        }
-
-        if playlist_genres.is_empty() {
-            return 0.5; // Neutral when no genre info in playlist
-        }
-
-        // Calculate compatibility based on shared genres
-        let mut compatibility_score = 0.0_f32;
-        let mut genre_checks = 0;
-
-        for candidate_genre in candidate_genres {
-            let genre_lower = candidate_genre.to_lowercase();
-            if let Some(&frequency) = playlist_genres.get(&genre_lower) {
-                // Genre exists in playlist - score based on frequency
-                let frequency_score = (frequency as f32 / current_playlist.len() as f32).min(1.0);
-                compatibility_score += 0.5 + frequency_score * 0.5; // 0.5-1.0 range
-            } else {
-                // New genre - slight penalty for diversity, but not harsh
-                compatibility_score += 0.3;
-            }
-            genre_checks += 1;
-        }
-
-        if genre_checks > 0 {
-            compatibility_score / genre_checks as f32
-        } else {
-            0.5
-        }
+        PlaylistTransitions::calculate_transition_score(&self.config, current_playlist, candidate)
     }
 }

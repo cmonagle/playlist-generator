@@ -7,7 +7,6 @@ pub struct PlaylistSong {
     pub song: Song,
     pub transition_score: Option<f32>, // Score for how well this song transitions with the playlist
     pub quality_contribution: Option<f32>, // How this song affected overall playlist quality
-    pub selection_reason: String, // Why this song was selected (e.g., "best candidate", "fallback")
 }
 
 impl PlaylistSong {
@@ -15,13 +14,11 @@ impl PlaylistSong {
         song: Song,
         transition_score: f32,
         quality_contribution: f32,
-        selection_reason: String,
     ) -> Self {
         Self {
             song,
             transition_score: Some(transition_score),
             quality_contribution: Some(quality_contribution),
-            selection_reason,
         }
     }
 }

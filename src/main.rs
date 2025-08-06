@@ -66,7 +66,7 @@ fn main() -> Result<()> {
 
     // Fetch random songs from the API
     println!("\nFetching songs for playlist generation...");
-    let songs = client.fetch_songs(Some(500))?; // Fetch 500 random songs for better variety
+    let songs = client.fetch_songs(Some(2000))?; // Fetch 500 random songs for better variety
 
     println!("Fetched {} songs total.", songs.len());
 
@@ -222,78 +222,83 @@ fn main() -> Result<()> {
                 "   Would clean up existing playlists matching pattern: '{}'",
                 playlist.base_name_pattern
             );
-            println!("   Song IDs that would be added to playlist:");
-
-            // Print detailed song information
+            
+            // Print concise playlist contents with key metrics
             for (i, playlist_song) in playlist.songs.iter().enumerate() {
                 let song = &playlist_song.song;
-                let all_genres = song.get_all_genres();
-                let genres_display = if all_genres.is_empty() {
-                    "Unknown".to_string()
-                } else {
-                    all_genres.join(", ")
-                };
-
                 let starred_indicator = if song.starred.is_some() { " ★" } else { "" };
-                let play_count_display = song
-                    .play_count
-                    .map(|pc| format!(" ({pc}x played)"))
-                    .unwrap_or_default();
-
-                println!(
-                    "     {}. \"{}\" by {}{}{}",
-                    i + 1,
-                    song.title,
-                    song.artist,
-                    starred_indicator,
-                    play_count_display
-                );
-
-                // Add transition score and selection reason to debug output
+                
+                // Add transition score and quality contribution to output
                 let transition_info = if let Some(score) = playlist_song.transition_score {
-                    format!(" | Transition: {score:.2}")
+                    format!(" | T:{score:.2}")
                 } else {
                     String::new()
                 };
 
                 let quality_info = if let Some(contrib) = playlist_song.quality_contribution {
-                    format!(" | Quality Δ: {contrib:.2}")
+                    format!(" | Q:{contrib:.2}")
                 } else {
                     String::new()
                 };
 
+                // Collect additional metadata
+                let play_count_display = song
+                    .play_count
+                    .map(|pc| format!(" ({}x)", pc))
+                    .unwrap_or_default();
+
+                let year_display = song
+                    .year
+                    .map(|y| format!(" [{}]", y))
+                    .unwrap_or_default();
+
+                let duration_display = song
+                    .duration
+                    .map(|d| format!(" {}:{:02}", d / 60, d % 60))
+                    .unwrap_or_default();
+
+                let last_played_display = if let Some(played) = &song.played {
+                    use crate::playlist::scoring::PlaylistScoring;
+                    match PlaylistScoring::parse_days_since_played(played) {
+                        Ok(days) if days < 1.0 => " (today)".to_string(),
+                        Ok(days) if days < 2.0 => " (yesterday)".to_string(),
+                        Ok(days) if days < 7.0 => format!(" ({}d ago)", days.round() as u32),
+                        Ok(days) if days < 30.0 => format!(" ({}d ago)", days.round() as u32),
+                        Ok(days) => format!(" ({}mo ago)", (days / 30.0).round() as u32),
+                        Err(_) => " (?)".to_string(),
+                    }
+                } else {
+                    " (never)".to_string()
+                };
+
+                let all_genres = song.get_all_genres();
+                let genres_display = if all_genres.is_empty() {
+                    String::new()
+                } else {
+                    format!(" | {}", all_genres.join(", "))
+                };
+                
                 println!(
-                    "        Album: {} | Genres: {} | BPM: {} | Duration: {}s | ID: {}",
-                    song.album,
-                    genres_display,
+                    "     {}. \"{}\" by {}{} [{}bpm]{}{}{}{}{}{}{}",
+                    i + 1,
+                    song.title,
+                    song.artist,
+                    starred_indicator,
                     song.bpm.unwrap_or(0),
-                    song.duration.unwrap_or(0),
+                    play_count_display,
+                    year_display,
+                    duration_display,
+                    last_played_display,
+                    transition_info,
+                    quality_info,
+                    genres_display
+                );
+                
+                println!(
+                    "        Album: {} | ID: {}",
+                    song.album,
                     song.id
                 );
-                println!(
-                    "        Selection: {}{}{}",
-                    playlist_song.selection_reason, transition_info, quality_info
-                );
-
-                // Show year and additional metadata if available
-                let mut extra_info = Vec::new();
-                if let Some(year) = song.year {
-                    extra_info.push(format!("Year: {year}"));
-                }
-                if let Some(track) = song.track {
-                    extra_info.push(format!("Track: {track}"));
-                }
-                if let Some(bit_rate) = song.bit_rate {
-                    extra_info.push(format!("{bit_rate}kbps"));
-                }
-                if let Some(played) = &song.played {
-                    extra_info.push(format!("Last played: {played}"));
-                }
-
-                if !extra_info.is_empty() {
-                    println!("        {}", extra_info.join(" | "));
-                }
-                println!(); // Empty line between songs
             }
 
             creation_results.push((

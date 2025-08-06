@@ -24,22 +24,16 @@ Each playlist configuration is a JSON object with the following structure:
 
 ### BPM Thresholds (optional)
 
-- **`bpm_thresholds.max_bpm`** (number): Maximum BPM for songs considered "softer"
-- **`bpm_thresholds.min_bpm`** (number): Minimum BPM for songs considered "upbeat"
+- **`bpm_thresholds.max_bpm`** (number): Maximum BPM for songs.
+- **`bpm_thresholds.min_bpm`** (number): Minimum BPM for songs.
+
+### Minimum Days Since Last Play (optional)
+
+- **`min_days_since_last_play`** (number): Minimum number of days since a song was last played for it to be included in the playlist. If undefined, this rule is not enforced.
 
 ### Playlist Preferences (0.0 to 1.0)
 
 These weights determine how much you want each characteristic in your playlist. Each value expresses your preference:
-
-- **`artist_diversity`**: How much you want different artists vs. repeating favorites
-  - 0.0 = Prefer repeating same artists (focus on favorites)
-  - 0.5 = Balanced mix of familiar and new artists
-  - 1.0 = Maximize different artists (explore your collection)
-
-- **`bpm_transition_smoothness`**: How smooth you want tempo changes between songs
-  - 0.0 = Allow dramatic tempo changes (energetic, surprising)
-  - 0.5 = Moderate tempo changes (some variety, some flow)
-  - 1.0 = Prioritize smooth tempo transitions (relaxing, cohesive flow)
 
 - **`genre_coherence`**: How consistent you want the genre selection
   - 0.0 = Maximize genre variety (eclectic, discovery-focused)
@@ -79,8 +73,7 @@ These weights determine how much you want each characteristic in your playlist. 
   "target_length": 25,
   "acceptable_genres": ["Jazz", "Chillout", "Indie Folk", "Lo-Fi"],
   "quality_weights": {
-    "artist_diversity": 0.7,
-    "bpm_transition_smoothness": 0.9,
+
     "genre_coherence": 0.8,
     "popularity_balance": 0.6,
     "era_cohesion": 0.4
@@ -99,8 +92,7 @@ These weights determine how much you want each characteristic in your playlist. 
   "target_length": 20,
   "acceptable_genres": ["Experimental", "Indie", "Alternative", "World Music"],
   "quality_weights": {
-    "artist_diversity": 0.9,
-    "bpm_transition_smoothness": 0.2,
+
     "genre_coherence": 0.1,
     "popularity_balance": 0.3,
     "era_cohesion": 0.2
@@ -121,8 +113,7 @@ These weights determine how much you want each characteristic in your playlist. 
   "acceptable_genres": ["Jazz", "Chillout", "Indie Folk", "Lo-Fi", "Ambient", "Downtempo"],
   "unacceptable_genres": ["Metal", "Hardcore", "Punk", "Noise"],
   "quality_weights": {
-    "artist_diversity": 0.6,
-    "bpm_transition_smoothness": 0.9,
+
     "genre_coherence": 0.7,
     "popularity_balance": 0.5,
     "era_cohesion": 0.4
@@ -141,8 +132,7 @@ These weights determine how much you want each characteristic in your playlist. 
   "target_length": 40,
   "acceptable_genres": ["Electronic", "Rock", "Metal", "Hip Hop"],
   "quality_weights": {
-    "artist_diversity": 0.6,
-    "bpm_transition_smoothness": 0.3,
+
     "genre_coherence": 0.7,
     "popularity_balance": 0.8,
     "era_cohesion": 0.1
@@ -161,8 +151,7 @@ These weights determine how much you want each characteristic in your playlist. 
   "target_length": 30,
   "acceptable_genres": ["Alternative Rock", "Grunge", "Hip Hop", "R&B"],
   "quality_weights": {
-    "artist_diversity": 0.5,
-    "bpm_transition_smoothness": 0.6,
+
     "genre_coherence": 0.6,
     "popularity_balance": 0.7,
     "era_cohesion": 0.9
@@ -210,4 +199,4 @@ Adjust your weights and genres based on the results until you get playlists that
    - Study playlist: High genre_coherence (0.8-1.0) and bpm_transition_smoothness (0.8-1.0)
 4. **Discovery Mode**: Great for finding new music but can feel random
 5. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
-6. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferencesJSON object with the following structure:
+6. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferences
