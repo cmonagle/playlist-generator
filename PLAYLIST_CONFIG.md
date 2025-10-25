@@ -63,8 +63,163 @@ These weights determine how much you want each characteristic in your playlist. 
 - **`recency_penalty_weight`** (number): How much to penalize recently played tracks
 - **`randomness_factor`** (0.0 to 1.0): Amount of randomness in selection
 - **`discovery_mode`** (boolean): If true, prioritizes less-played tracks
+- **`play_count_filter`** (object, optional): Filter songs by play count (see Play Count Filtering section)
+
+## Play Count Filtering
+
+The `play_count_filter` option allows you to create highly targeted playlists based on how often songs have been played. This is perfect for creating discovery playlists, high-rotation favorites, or anything in between.
+
+### Filter Types
+
+#### 1. Exact Play Count
+Filter for songs with an exact number of plays:
+```json
+"play_count_filter": {
+  "type": "Exact",
+  "count": null        // null = zero plays (never played)
+}
+```
+```json
+"play_count_filter": {
+  "type": "Exact", 
+  "count": 5          // exactly 5 plays
+}
+```
+
+#### 2. Play Count Range
+Filter for songs within a range of play counts:
+```json
+"play_count_filter": {
+  "type": "Range",
+  "min": 1,           // minimum plays (optional)
+  "max": 10           // maximum plays (optional)
+}
+```
+
+#### 3. Percentile-Based
+Filter for top or bottom percentile of most/least played songs:
+```json
+"play_count_filter": {
+  "type": "Percentile",
+  "direction": "top",   // "top" for most played, "bottom" for least played
+  "percent": 0.2        // 0.2 = top/bottom 20%
+}
+```
+
+#### 4. Threshold-Based
+Filter songs above/below a play count threshold:
+```json
+"play_count_filter": {
+  "type": "Threshold",
+  "operator": "above",  // "above", "below", "at_least", "at_most"
+  "count": 15
+}
+```
+
+### Play Count Filter Examples
+
+#### Zero Plays Discovery
+Perfect for finding completely unplayed music:
+```json
+"play_count_filter": {
+  "type": "Exact",
+  "count": null
+}
+```
+
+#### High Rotation Favorites
+Your most played songs (top 10%):
+```json
+"play_count_filter": {
+  "type": "Percentile",
+  "direction": "top",
+  "percent": 0.1
+}
+```
+
+#### Medium Rotation Mix
+Songs you've played a moderate amount (5-20 times):
+```json
+"play_count_filter": {
+  "type": "Range",
+  "min": 5,
+  "max": 20
+}
+```
+
+#### Rarely Played Gems
+Songs you've barely explored (1-3 plays):
+```json
+"play_count_filter": {
+  "type": "Threshold",
+  "operator": "at_most",
+  "count": 3
+}
+```
 
 ## Example Configurations
+
+### Zero Plays Discovery Playlist
+Perfect for exploring completely unplayed music:
+```json
+{
+  "name": "🔍 Zero Plays",
+  "target_length": 30,
+  "quality_weights": {
+    "artist_diversity": 0.8,
+    "bpm_transition_smoothness": 0.3,
+    "genre_coherence": 0.4,
+    "popularity_balance": 0,
+    "era_cohesion": 0.2
+  },
+  "transition_rules": {
+    "max_bpm_jump": 80,
+    "preferred_bpm_change": 0,
+    "avoid_artist_repeats_within": 8,
+    "avoid_album_repeats_within": 10
+  },
+  "preference_weights": {
+    "starred_boost": 0,
+    "play_count_weight": 50.0,
+    "recency_penalty_weight": 0,
+    "randomness_factor": 0.8,
+    "discovery_mode": true,
+    "play_count_filter": {
+      "type": "Exact",
+      "count": null
+    }
+  }
+}
+```
+
+### High Rotation Favorites
+Your most played songs (top 15%):
+```json
+{
+  "name": "🔥 High Rotation",
+  "target_length": 25,
+  "acceptable_genres": ["Pop", "Rock", "Electronic", "Hip Hop", "Indie Pop"],
+  "quality_weights": {
+    "artist_diversity": 0.3,
+    "bpm_transition_smoothness": 0.4,
+    "genre_coherence": 0.6,
+    "popularity_balance": 0.2,
+    "era_cohesion": 0.3
+  },
+  "preference_weights": {
+    "starred_boost": 100.0,
+    "play_count_weight": 30.0,
+    "recency_penalty_weight": 10.0,
+    "randomness_factor": 0.2,
+    "discovery_mode": false,
+    "play_count_filter": {
+      "type": "Percentile",
+      "direction": "top",
+      "percent": 0.15
+    }
+  }
+}
+```
 
 ### Morning Chill Playlist (Coherent & Smooth)
 ```json
@@ -200,3 +355,10 @@ Adjust your weights and genres based on the results until you get playlists that
 4. **Discovery Mode**: Great for finding new music but can feel random
 5. **Target Length**: Consider listening context (commute = 20-30, workout = 40+)
 6. **Balancing Preferences**: Most playlists work well with values between 0.3-0.7 for most preferences
+7. **Play Count Filtering Tips**:
+   - **Zero plays discovery**: Combine with high `artist_diversity` (0.8) and `randomness_factor` (0.8) for maximum exploration
+   - **High rotation favorites**: Use lower `artist_diversity` (0.3) to allow favorite artists to repeat more
+   - **Percentile filters**: Work best with large music libraries (500+ songs)
+   - **Range filters**: Great for targeting specific listening habits (e.g., 1-5 plays for "songs I liked but forgot about")
+   - **Threshold filters**: Useful for broad categories like "rarely played" (at_most 3) or "heavy rotation" (above 20)
+   - **Combine with discovery_mode**: For zero/low play count filters, set `discovery_mode: true` and positive `play_count_weight`

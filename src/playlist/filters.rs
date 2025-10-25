@@ -1,5 +1,6 @@
-use super::PlaylistConfig;
+use super::{PlaylistConfig, PlayCountFilter};
 use crate::models::Song;
+use std::collections::HashMap;
 
 /// Song filtering functionality using static helper functions
 pub struct SongFilters;
@@ -152,11 +153,81 @@ impl SongFilters {
         song_bpm >= bpm_thresholds.min_bpm && song_bpm <= bpm_thresholds.max_bpm
     }
 
+    /// Check if a song matches the play count filter
+    pub fn matches_play_count_filter(song: &Song, config: &PlaylistConfig, all_songs: &[Song]) -> bool {
+        // If no play count filter is set, accept all songs
+        let Some(play_count_filter) = &config.preference_weights.play_count_filter else {
+            return true;
+        };
+
+        match play_count_filter {
+            PlayCountFilter::None => true,
+            
+            PlayCountFilter::Exact { count } => {
+                match count {
+                    Some(target_count) => song.play_count == Some(*target_count),
+                    None => song.play_count.is_none(), // Zero plays (never played)
+                }
+            },
+            
+            PlayCountFilter::Range { min, max } => {
+                let song_play_count = song.play_count.unwrap_or(0);
+                let min_ok = min.map_or(true, |m| song_play_count >= m);
+                let max_ok = max.map_or(true, |m| song_play_count <= m);
+                min_ok && max_ok
+            },
+            
+            PlayCountFilter::Threshold { operator, count } => {
+                let song_play_count = song.play_count.unwrap_or(0);
+                match operator.as_str() {
+                    "above" => song_play_count > *count,
+                    "below" => song_play_count < *count,
+                    "at_least" => song_play_count >= *count,
+                    "at_most" => song_play_count <= *count,
+                    _ => true, // Invalid operator, default to accepting
+                }
+            },
+            
+            PlayCountFilter::Percentile { direction, percent } => {
+                // Calculate percentile thresholds from all songs
+                let mut play_counts: Vec<u32> = all_songs
+                    .iter()
+                    .map(|s| s.play_count.unwrap_or(0))
+                    .collect();
+                play_counts.sort_unstable();
+                
+                let song_play_count = song.play_count.unwrap_or(0);
+                
+                match direction.as_str() {
+                    "top" => {
+                        // Top percentile = highest play counts
+                        let threshold_index = ((1.0 - percent) * play_counts.len() as f32) as usize;
+                        let threshold = play_counts.get(threshold_index).copied().unwrap_or(0);
+                        song_play_count >= threshold
+                    },
+                    "bottom" => {
+                        // Bottom percentile = lowest play counts  
+                        let threshold_index = (percent * play_counts.len() as f32) as usize;
+                        let threshold = play_counts.get(threshold_index).copied().unwrap_or(0);
+                        song_play_count <= threshold
+                    },
+                    _ => true, // Invalid direction, default to accepting
+                }
+            }
+        }
+    }
+
     /// Apply all filters to determine if a song should be included
     pub fn should_include_song(song: &Song, config: &PlaylistConfig) -> bool {
         Self::is_actual_song(song)
             && Self::matches_acceptable_genres(song, config)
             && Self::does_not_match_unacceptable_genres(song, config)
             && Self::matches_bpm_thresholds(song, config)
+    }
+
+    /// Apply all filters including play count filter (requires access to all songs for percentile calculations)
+    pub fn should_include_song_with_play_count_filter(song: &Song, config: &PlaylistConfig, all_songs: &[Song]) -> bool {
+        Self::should_include_song(song, config)
+            && Self::matches_play_count_filter(song, config, all_songs)
     }
 }

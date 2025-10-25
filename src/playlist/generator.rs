@@ -25,9 +25,17 @@ impl PlaylistGenerator {
         let target_length = target_length.unwrap_or(20);
 
         // Filter songs and remove non-songs
-        let mut filtered_songs: Vec<Song> = songs
+        // First pass: basic filters (genre, BPM, etc.)
+        let basic_filtered_songs: Vec<Song> = songs
             .into_iter()
             .filter(|song| SongFilters::should_include_song(song, &self.config))
+            .collect();
+
+        // Second pass: play count filter (needs access to all songs for percentile calculations)
+        let mut filtered_songs: Vec<Song> = basic_filtered_songs
+            .iter()
+            .filter(|song| SongFilters::should_include_song_with_play_count_filter(song, &self.config, &basic_filtered_songs))
+            .cloned()
             .collect();
 
         // Sort songs by preference score using configurable weights

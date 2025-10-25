@@ -42,6 +42,31 @@ pub struct TransitionRules {
     pub avoid_album_repeats_within: usize, // number of songs
 }
 
+/// Play count filtering strategies
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(tag = "type")]
+pub enum PlayCountFilter {
+    /// No play count filtering - include all songs
+    None,
+    /// Exact play count (e.g., only songs with 0 plays, or exactly 5 plays)
+    Exact { count: Option<u32> }, // None means 0 plays (never played)
+    /// Range of play counts (inclusive)
+    Range { min: Option<u32>, max: Option<u32> },
+    /// Top/bottom percentile of most/least played songs
+    Percentile { 
+        /// "top" for most played, "bottom" for least played
+        direction: String, 
+        /// Percentage (0.0-1.0), e.g., 0.1 = top/bottom 10%
+        percent: f32 
+    },
+    /// Threshold-based filtering
+    Threshold {
+        /// "above", "below", "at_least", "at_most"
+        operator: String,
+        count: u32,
+    },
+}
+
 /// Weights for preference scoring (0.0 to 1.0)
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct PreferenceWeights {
@@ -50,6 +75,8 @@ pub struct PreferenceWeights {
     pub recency_penalty_weight: f32, // Weight for recency penalty
     pub randomness_factor: f32,      // Random variation factor
     pub discovery_mode: bool,        // Use discovery scoring (inverts play count logic)
+    #[serde(default)]
+    pub play_count_filter: Option<PlayCountFilter>, // Filter songs by play count
 }
 
 /// Collection of playlist configurations loaded from JSON
@@ -103,6 +130,7 @@ impl Default for PlaylistConfig {
                 recency_penalty_weight: 5.0,
                 randomness_factor: 0.2,
                 discovery_mode: false,
+                play_count_filter: None,
             },
             target_length: Some(20),
             min_days_since_last_play: None, // Default to no minimum day restriction
