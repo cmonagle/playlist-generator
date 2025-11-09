@@ -73,6 +73,10 @@
       "Post-Punk", "Post-Rock", "Art Rock", "Experimental", 
       "Noise Pop", "Jangle Pop", "Neo-Psychedelia", "Indietronica"
     ],
+    "release_year": {
+      "min": 2000,
+      "max": 2020
+    },
     "bpm_thresholds": {
       "min_bpm": 70,
       "max_bpm": 140

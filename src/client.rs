@@ -94,11 +94,65 @@ impl SubsonicClient {
     }
 
     /// Fetch random songs from the Subsonic API
+    /// If count > 500, makes multiple requests to accumulate unique songs
     pub fn fetch_songs(&self, count: Option<u32>) -> Result<Vec<Song>> {
+        let desired_count = count.unwrap_or(100);
+        let max_per_request = 500;
+        
+        // If we can get it in one request, do that
+        if desired_count <= max_per_request {
+            return self.fetch_songs_batch(desired_count);
+        }
+        
+        // Otherwise, make multiple requests and collect unique songs
+        let mut all_songs = Vec::new();
+        let mut seen_ids = std::collections::HashSet::new();
+        let mut attempts = 0;
+        let max_attempts = 20; // Prevent infinite loops if library is smaller than requested
+        
+        println!("Fetching {} songs (making multiple requests of {} songs each)...", desired_count, max_per_request);
+        
+        while all_songs.len() < desired_count as usize && attempts < max_attempts {
+            attempts += 1;
+            let batch = self.fetch_songs_batch(max_per_request)?;
+            
+            let initial_count = all_songs.len();
+            let batch_size = batch.len();
+            
+            for song in batch {
+                if !seen_ids.contains(&song.id) {
+                    seen_ids.insert(song.id.clone());
+                    all_songs.push(song);
+                    
+                    if all_songs.len() >= desired_count as usize {
+                        break;
+                    }
+                }
+            }
+            
+            let added = all_songs.len() - initial_count;
+            println!("  Batch {}: got {} songs, {} new (total: {}/{})", 
+                     attempts, batch_size, added, all_songs.len(), desired_count);
+            
+            // If we got very few new songs, the library might be exhausted
+            if added < 50 && all_songs.len() < desired_count as usize {
+                println!("  Warning: Only got {} new songs in this batch. Library may be smaller than requested count.", added);
+            }
+        }
+        
+        if all_songs.len() < desired_count as usize {
+            println!("  Note: Retrieved {} songs, less than requested {} (library may be smaller)", 
+                     all_songs.len(), desired_count);
+        }
+        
+        Ok(all_songs)
+    }
+    
+    /// Internal helper to fetch a single batch of random songs
+    fn fetch_songs_batch(&self, size: u32) -> Result<Vec<Song>> {
         let (salt, token) = self.generate_auth_params();
 
         // Build URL with query parameters
-        let size = count.unwrap_or(100);
         let url = format!(
             "{}/rest/getRandomSongs?u={}&t={}&s={}&v=1.16.1&c=PlaylistGenerator&f=json&size={}",
             self.base_url.trim_end_matches('/'),

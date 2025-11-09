@@ -27,6 +27,16 @@ Each playlist configuration is a JSON object with the following structure:
 - **`bpm_thresholds.max_bpm`** (number): Maximum BPM for songs.
 - **`bpm_thresholds.min_bpm`** (number): Minimum BPM for songs.
 
+### Release Year Filter (optional)
+
+- **`release_year.min`** (number or null): Minimum release year to include.
+- **`release_year.max`** (number or null): Maximum release year to include.
+
+Notes:
+- Bounds are inclusive.
+- If either bound is omitted, only the other is applied.
+- If a song has no year metadata, it is treated neutrally and will be included (same behavior as BPM when missing).
+
 ### Minimum Days Since Last Play (optional)
 
 - **`min_days_since_last_play`** (number): Minimum number of days since a song was last played for it to be included in the playlist. If undefined, this rule is not enforced.
@@ -305,6 +315,7 @@ Your most played songs (top 15%):
   "name": "90s Throwback",
   "target_length": 30,
   "acceptable_genres": ["Alternative Rock", "Grunge", "Hip Hop", "R&B"],
+  "release_year": { "min": 1990, "max": 1999 },
   "quality_weights": {
 
     "genre_coherence": 0.6,

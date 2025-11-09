@@ -1,6 +1,5 @@
 use super::{PlaylistConfig, PlayCountFilter};
 use crate::models::Song;
-use std::collections::HashMap;
 
 /// Song filtering functionality using static helper functions
 pub struct SongFilters;
@@ -153,6 +152,23 @@ impl SongFilters {
         song_bpm >= bpm_thresholds.min_bpm && song_bpm <= bpm_thresholds.max_bpm
     }
 
+    /// Check if a song matches the release year range filter (inclusive)
+    pub fn matches_release_year(song: &Song, config: &PlaylistConfig) -> bool {
+        // If no release year filter is set, accept all songs
+        let Some(range) = &config.release_year else {
+            return true;
+        };
+
+        // If song has no year data, accept it (neutral)
+        let Some(year) = song.year else {
+            return true;
+        };
+
+        let min_ok = range.min.map_or(true, |m| year >= m);
+        let max_ok = range.max.map_or(true, |m| year <= m);
+        min_ok && max_ok
+    }
+
     /// Check if a song matches the play count filter
     pub fn matches_play_count_filter(song: &Song, config: &PlaylistConfig, all_songs: &[Song]) -> bool {
         // If no play count filter is set, accept all songs
@@ -223,6 +239,7 @@ impl SongFilters {
             && Self::matches_acceptable_genres(song, config)
             && Self::does_not_match_unacceptable_genres(song, config)
             && Self::matches_bpm_thresholds(song, config)
+            && Self::matches_release_year(song, config)
     }
 
     /// Apply all filters including play count filter (requires access to all songs for percentile calculations)

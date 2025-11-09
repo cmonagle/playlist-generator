@@ -66,7 +66,7 @@ fn main() -> Result<()> {
 
     // Fetch random songs from the API
     println!("\nFetching songs for playlist generation...");
-    let songs = client.fetch_songs(Some(2000))?; // Fetch 500 random songs for better variety
+    let songs = client.fetch_songs(Some(2000))?; // Fetch more songs for better variety (will make multiple API calls if needed)
 
     println!("Fetched {} songs total.", songs.len());
 

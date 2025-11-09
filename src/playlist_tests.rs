@@ -103,6 +103,7 @@ mod tests {
             acceptable_genres: None,
             unacceptable_genres: None,
             bpm_thresholds: None,
+            release_year: None,
             quality_weights: QualityWeights {
                 artist_diversity: 0.5,
                 bpm_transition_smoothness: 0.5,
@@ -122,8 +123,10 @@ mod tests {
                 recency_penalty_weight: 0.0,
                 randomness_factor: 0.0,
                 discovery_mode: true,
+                play_count_filter: None,
             },
             target_length: Some(20),
+            min_days_since_last_play: None,
         };
 
         // Create normal mode config
@@ -134,6 +137,7 @@ mod tests {
                 recency_penalty_weight: 0.0,
                 randomness_factor: 0.0,
                 discovery_mode: false,
+                play_count_filter: None,
             },
             ..discovery_config.clone()
         };
@@ -178,5 +182,63 @@ mod tests {
             low_normal_score > unplayed_normal_score,
             "Low played song should score higher than unplayed song in normal mode. Low: {low_normal_score}, Unplayed: {unplayed_normal_score}"
         );
+    }
+
+    #[test]
+    fn test_release_year_filtering() {
+        use crate::playlist::filters::SongFilters;
+        use crate::playlist::{PlaylistConfig, QualityWeights, TransitionRules, PreferenceWeights};
+
+        // Base config
+        let mut config = PlaylistConfig {
+            name: "Year Filter".to_string(),
+            acceptable_genres: None,
+            unacceptable_genres: None,
+            bpm_thresholds: None,
+            release_year: Some(crate::playlist::config::ReleaseYearRange { min: Some(2000), max: Some(2010) }),
+            quality_weights: QualityWeights {
+                artist_diversity: 0.5,
+                bpm_transition_smoothness: 0.5,
+                genre_coherence: 0.5,
+                popularity_balance: 0.5,
+                era_cohesion: 0.5,
+            },
+            transition_rules: TransitionRules {
+                max_bpm_jump: 30,
+                preferred_bpm_change: 0,
+                avoid_artist_repeats_within: 3,
+                avoid_album_repeats_within: 5,
+            },
+            preference_weights: PreferenceWeights {
+                starred_boost: 0.0,
+                play_count_weight: 0.0,
+                recency_penalty_weight: 0.0,
+                randomness_factor: 0.0,
+                discovery_mode: false,
+                play_count_filter: None,
+            },
+            target_length: Some(20),
+            min_days_since_last_play: None,
+        };
+
+        let mut in_range = create_test_song("In Range", Some(180));
+        in_range.year = Some(2005);
+        let mut below = create_test_song("Below", Some(180));
+        below.year = Some(1999);
+        let mut above = create_test_song("Above", Some(180));
+        above.year = Some(2011);
+        let mut unknown = create_test_song("Unknown", Some(180));
+        unknown.year = None; // Should be accepted (neutral) even when filter present
+
+        assert!(SongFilters::matches_release_year(&in_range, &config));
+        assert!(!SongFilters::matches_release_year(&below, &config));
+        assert!(!SongFilters::matches_release_year(&above, &config));
+        assert!(SongFilters::matches_release_year(&unknown, &config));
+
+        // Disable the filter entirely
+        config.release_year = None;
+        for s in [&in_range, &below, &above, &unknown] {
+            assert!(SongFilters::matches_release_year(s, &config));
+        }
     }
 }

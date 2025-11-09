@@ -7,6 +7,8 @@ pub struct PlaylistConfig {
     pub acceptable_genres: Option<Vec<String>>,
     pub unacceptable_genres: Option<Vec<String>>,
     pub bpm_thresholds: Option<BpmThresholds>,
+    #[serde(default)]
+    pub release_year: Option<ReleaseYearRange>,
     pub quality_weights: QualityWeights,
     pub transition_rules: TransitionRules,
     pub preference_weights: PreferenceWeights,
@@ -19,6 +21,15 @@ pub struct PlaylistConfig {
 pub struct BpmThresholds {
     pub min_bpm: u32,
     pub max_bpm: u32,
+}
+
+/// Release year range for playlist filtering
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct ReleaseYearRange {
+    #[serde(default)]
+    pub min: Option<u32>,
+    #[serde(default)]
+    pub max: Option<u32>,
 }
 
 /// Preferences for different playlist characteristics (0.0 to 1.0)
@@ -111,6 +122,7 @@ impl Default for PlaylistConfig {
             acceptable_genres: None,
             unacceptable_genres: None,
             bpm_thresholds: None,
+            release_year: None,
             quality_weights: QualityWeights {
                 artist_diversity: 0.25,
                 bpm_transition_smoothness: 0.15,
