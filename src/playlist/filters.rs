@@ -176,13 +176,13 @@ impl SongFilters {
             return true;
         };
 
-        match play_count_filter {
+        let result = match play_count_filter {
             PlayCountFilter::None => true,
             
             PlayCountFilter::Exact { count } => {
                 match count {
                     Some(target_count) => song.play_count == Some(*target_count),
-                    None => song.play_count.is_none(), // Zero plays (never played)
+                    None => song.play_count.is_none() || song.play_count == Some(0), // Zero plays (never played or explicit 0)
                 }
             },
             
@@ -230,7 +230,8 @@ impl SongFilters {
                     _ => true, // Invalid direction, default to accepting
                 }
             }
-        }
+        };
+        result
     }
 
     /// Apply all filters to determine if a song should be included
